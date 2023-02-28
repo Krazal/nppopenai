@@ -1,0 +1,87 @@
+version: 3.1.{build}
+image: Visual Studio 2017
+
+
+environment:
+  matrix:
+  - PlatformToolset: v141
+
+platform:
+    - x64
+    - Win32
+    - arm64
+
+configuration:
+    - Release
+    - Debug
+
+install:
+    - if "%platform%"=="x64" set archi=amd64
+    - if "%platform%"=="x64" set platform_input=x64
+
+    - if "%platform%"=="Win32" set archi=x86
+    - if "%platform%"=="Win32" set platform_input=Win32
+
+    - if "%platform%"=="arm64" set archi=amd64_arm64
+    - if "%platform%"=="arm64" set platform_input=arm64
+
+    - if "%PlatformToolset%"=="v141" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %archi%
+    - if "%PlatformToolset%"=="v142" call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" %archi%
+
+build_script:
+    - cd "%APPVEYOR_BUILD_FOLDER%"/vs.proj
+    - msbuild NppPluginTemplate.vcxproj /m /p:configuration="%configuration%" /p:platform="%platform_input%" /p:PlatformToolset="%PlatformToolset%" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
+after_build:
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - ps: >-
+
+        if ($env:PLATFORM_INPUT -eq "x64" -and $env:CONFIGURATION -eq "Release") {
+            Push-AppveyorArtifact "bin64\NppPluginTemplate.dll" -FileName NppPluginTemplate.dll
+        }
+
+        if ($env:PLATFORM_INPUT -eq "Win32" -and $env:CONFIGURATION -eq "Release") {
+            Push-AppveyorArtifact "bin\NppPluginTemplate.dll" -FileName NppPluginTemplate.dll
+        }
+
+        if ($env:PLATFORM_INPUT -eq "arm64" -and $env:CONFIGURATION -eq "Release") {
+            Push-AppveyorArtifact "arm64\NppPluginTemplate.dll" -FileName NppPluginTemplate.dll
+        }
+
+        if ($($env:APPVEYOR_REPO_TAG) -eq "true" -and $env:CONFIGURATION -eq "Release" -and $env:PLATFORMTOOLSET -eq "v141") {
+            if($env:PLATFORM_INPUT -eq "x64"){
+                $ZipFileName = "NppPluginTemplate_$($env:APPVEYOR_REPO_TAG_NAME)_x64.zip"
+                Remove-Item bin64\*.ipdb
+                Remove-Item bin64\*.iobj
+                7z a $ZipFileName "$($env:APPVEYOR_BUILD_FOLDER)\bin64\*"
+            }
+            if($env:PLATFORM_INPUT -eq "Win32"){
+                $ZipFileName = "NppPluginTemplate_$($env:APPVEYOR_REPO_TAG_NAME)_x86.zip"
+                Remove-Item bin\*.ipdb
+                Remove-Item bin\*.iobj
+                7z a $ZipFileName "$($env:APPVEYOR_BUILD_FOLDER)\bin\*"
+            }
+            if($env:PLATFORM_INPUT -eq "arm64"){
+                $ZipFileName = "NppPluginTemplate_$($env:APPVEYOR_REPO_TAG_NAME)_arm64.zip"
+                Remove-Item bin64\*.ipdb
+                Remove-Item bin64\*.iobj
+                7z a $ZipFileName "$($env:APPVEYOR_BUILD_FOLDER)\arm64\*"
+            }
+        }
+
+artifacts:
+  - path: NppPluginTemplate_*.zip
+    name: releases
+
+deploy:
+    provider: GitHub
+    auth_token:
+        secure: !!TODO, see https://www.appveyor.com/docs/deployment/github/#provider-settings!!
+    artifact: releases
+    draft: false
+    prerelease: false
+    force_update: true
+    on:
+        appveyor_repo_tag: true
+        PlatformToolset: v141
+        configuration: Release

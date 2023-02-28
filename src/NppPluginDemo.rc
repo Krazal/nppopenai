@@ -1,0 +1,52 @@
+/*
+ Copyright 2022 Don HO <don.h@free.fr>
+
+ This file is part of Notepad++ demo plugin.
+
+ Notepad++ demo plugin is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ GUP is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with GUP.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <windows.h>
+
+#define VERSION_VALUE "0.1\0"
+#define VERSION_DIGITALVALUE 0, 1, 0, 0
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION	VERSION_DIGITALVALUE
+PRODUCTVERSION	VERSION_DIGITALVALUE
+FILEFLAGSMASK	0x3fL
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+	BLOCK	"VarFileInfo"
+	BEGIN
+		VALUE	"Translation",	0x409,	1200
+	END
+	BLOCK	"StringFileInfo"
+	BEGIN
+		BLOCK "040904b0"
+		BEGIN
+			VALUE	"CompanyName",	"Tarhely.Eu Kft.\0"
+			VALUE	"FileDescription",	"OpenAI plugin for Notepad++\0"
+			VALUE	"FileVersion",	VERSION_VALUE
+			VALUE	"InternalName",	"NppOpenAI.dll\0"
+			VALUE	"LegalCopyright",	"Copyright 2023 by Richard Stockinger\0"
+			VALUE	"OriginalFilename",	"NppOpenAI.dll\0"
+			VALUE	"ProductName",	"NppOpenAI\0"
+			VALUE	"ProductVersion",	VERSION_VALUE
+		END
+	END
+END
