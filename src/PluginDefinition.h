@@ -23,6 +23,7 @@
 // All difinitions of plugin interface
 //
 #include "PluginInterface.h"
+#include <string>
 
 //-------------------------------------//
 //-- STEP 1. DEFINE YOUR PLUGIN NAME --//
