@@ -21,6 +21,6 @@ Additional information
 Some help how to build cURL with OpenSSL and zlib:
 https://developers.refinitiv.com/en/article-catalog/article/how-to-build-openssl--zlib--and-curl-libraries-on-windows
 
-After manual building this plugin, please copy `*.dll` AND `cacert.pem` (source: https://curl.se/ca/cacert.pem) files from `vs.proj/Debug` directory to your Notepad++ plugin folder.
+After manual building this plugin, please copy `*.dll` AND `cacert.pem` (source: https://curl.se/ca/cacert.pem) files from `vs.proj/Debug` directory to your Notepad++ plugin folder (`C:\Program Files (x86)\Notepad++\plugins\NppOpenAI` by default).
 
 This plugin is built for Notepad++ 32-bit.
