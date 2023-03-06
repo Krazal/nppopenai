@@ -52,8 +52,8 @@ FuncItem funcItem[nbFunc];
 NppData nppData;
 
 // Config file related vars
-std::wstring configAPIValue_secretKey       = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
-std::wstring configAPIValue_model            = TEXT("text-davinci-003"); // NOTE: Shall we use "code-davinci-002" by default?
+std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
+std::wstring configAPIValue_model            = TEXT("gpt-3.5-turbo"); // Recommended default model. NOTE: You can use use "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
 std::wstring configAPIValue_maxTokens        = TEXT("256");
 std::wstring configAPIValue_topP             = TEXT("0.8");
@@ -248,18 +248,6 @@ void askChatGPT()
 		&& ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTWORD, 9999, (LPARAM)selectedText)
 	)
 	{
-		json postData = {
-			{to_utf8(configAPIKey_model),            to_utf8(configAPIValue_model)},
-			{to_utf8(configAPIKey_temperature),      std::stod(configAPIValue_temperature)},
-			{to_utf8(configAPIKey_maxTokens),        std::stoi(configAPIValue_maxTokens)}, // Int!
-			{to_utf8(configAPIKey_topP),             std::stod(configAPIValue_topP)},
-			{to_utf8(configAPIKey_frequencyPenalty), std::stod(configAPIValue_frequencyPenalty)},
-			{to_utf8(configAPIKey_presencePenalty),  std::stod(configAPIValue_presencePenalty)},
-			{"prompt",                               to_utf8(selectedText)}
-		};
-
-		// TCHAR JSONexample[9999] = postData.dump();
-		std::string JSONRequest = postData.dump();
 
 		// Prepare cURL
 		CURL *curl;
@@ -270,6 +258,43 @@ void askChatGPT()
 		curl = curl_easy_init();
 		if (curl)
 		{
+			json postData = {
+				{to_utf8(configAPIKey_model),            to_utf8(configAPIValue_model)},
+				{to_utf8(configAPIKey_temperature),      std::stod(configAPIValue_temperature)},
+				{to_utf8(configAPIKey_maxTokens),        std::stoi(configAPIValue_maxTokens)}, // Int!
+				{to_utf8(configAPIKey_topP),             std::stod(configAPIValue_topP)},
+				{to_utf8(configAPIKey_frequencyPenalty), std::stod(configAPIValue_frequencyPenalty)},
+				{to_utf8(configAPIKey_presencePenalty),  std::stod(configAPIValue_presencePenalty)}
+			};
+
+			// Update postData + OpenAI URL
+			std::string OpenAIURL;
+			if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0) // gpt-3.5-turbo (recommended), gpt-3.5-turbo-0301 (snapshot of `gpt-3.5-turbo` from March 1st 2023)
+			{
+				/* You may set the behavior of the assistant. This is NOT a real chat yet, as we don't have conversation history!
+				postData["messages"][0] = { // 
+					{"role",    "system"},
+					{"content", "You are a helpful assistant."},
+				};
+				// */
+				postData["messages"][0] = { // Use 1, if you set the behavior of the assistant
+					{"role",    "user"},
+					{"content", to_utf8(selectedText)}
+				};
+				OpenAIURL = "https://api.openai.com/v1/chat/completions";
+			}
+			else
+			{
+				postData["prompt"] = to_utf8(selectedText);
+				OpenAIURL = "https://api.openai.com/v1/completions";
+			}
+
+			std::string JSONRequest = postData.dump();
+
+			/* // TEST
+			::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONRequest.c_str());
+			return;
+			// */
 
 			// Get the CA bundle file for cURL
 			TCHAR CACertFilePath[MAX_PATH];
@@ -283,7 +308,7 @@ void askChatGPT()
 			std::wstring tmpBearer = TEXT("Authorization: Bearer ") + configAPIValue_secretKey;
 			headerList = curl_slist_append(headerList, to_utf8(tmpBearer).c_str());
 			headerList = curl_slist_append(headerList, "Content-Type: application/json");
-			curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/completions"); // https://api.openai.com/v1/completions
+			curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // https://api.openai.com/v1/completions
 			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 			curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
 			curl_easy_setopt(curl, CURLOPT_CAINFO, to_utf8(CACertFilePath).c_str());
@@ -358,7 +383,6 @@ static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void
 	::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)memoryBuffer.c_str());
 	// */
 
-
 	// Parse response
 	json JSONResponse = json::parse(memoryBuffer);
 
@@ -366,16 +390,22 @@ static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void
 	if (JSONResponse.contains("choices") && JSONResponse.contains("usage"))
 	{
 
-		// Get response text
+		// Get the appropriate response text
 		std::string responseText;
-		JSONResponse["choices"][0]["text"].get_to(responseText);
-		if (isKeepQuestion)
+		if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0)
 		{
-			responseText = to_utf8(selectedText) + responseText;
+			JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
 		}
 		else
 		{
-			responseText.erase(0, responseText.find_first_not_of("\n"));
+			JSONResponse["choices"][0]["text"].get_to(responseText);
+		}
+
+		// Update response text
+		responseText.erase(0, responseText.find_first_not_of("\n"));
+		if (isKeepQuestion)
+		{
+			responseText = to_utf8(selectedText) + "\n\n" + responseText;
 		}
 
 		// Update line endings
@@ -421,7 +451,7 @@ void aboutDlg()
 	char about[255];
 	TCHAR about_wide[255] = { 0, };
 	sprintf(about, "\
-OpenAI (aka. ChatGPT) plugin for Notepad++ v0.1 by Richard Stockinger\n\n\
+OpenAI (aka. ChatGPT) plugin for Notepad++ v0.1.5 by Richard Stockinger\n\n\
 This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
 ", LIBCURL_VERSION, NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
 	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, about, strlen(about), about_wide, 255);
