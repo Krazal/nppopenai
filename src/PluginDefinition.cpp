@@ -330,7 +330,7 @@ void askChatGPT()
 				char curl_error[512];
 				sprintf(curl_error, "An error occurred when accessing the OpenAI server:\n%s", curl_easy_strerror(res));
 				MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, curl_error, strlen(curl_error), curl_error_wide, 512);
-				::MessageBox(NULL, curl_error_wide, TEXT("OpenAI: Connection Error"), MB_ICONEXCLAMATION);
+				::MessageBox(nppData._nppHandle, curl_error_wide, TEXT("OpenAI: Connection Error"), MB_ICONEXCLAMATION);
 			}
 
 			// Cleanup (including headers)
@@ -345,25 +345,25 @@ void askChatGPT()
 	else if (!isSecretKey)
 	{
 		openConfig();
-		::MessageBox(NULL, TEXT("1. Please enter your OpenAI private key\n\
+		::MessageBox(nppData._nppHandle, TEXT("1. Please enter your OpenAI private key\n\
 2. Save the NppOpenAI.ini file\n\
 3. Load NppOpenAI Config from Plugins » NppOpenAI » Load Config"), TEXT("OpenAI: Missing private key"), MB_ICONINFORMATION);
 	}
 	else if (!isEditable)
 	{
-		::MessageBox(NULL, TEXT("This file is not editable"), TEXT("OpenAI: Invalid file"), MB_ICONERROR);
+		::MessageBox(nppData._nppHandle, TEXT("This file is not editable"), TEXT("OpenAI: Invalid file"), MB_ICONERROR);
 	}
 	else if (selend <= selstart)
 	{
-		::MessageBox(NULL, TEXT("Please select a text first"), TEXT("OpenAI: Missing question"), MB_ICONWARNING);
+		::MessageBox(nppData._nppHandle, TEXT("Please select a text first"), TEXT("OpenAI: Missing question"), MB_ICONWARNING);
 	}
 	else if (sellength >= 9999)
 	{
-		::MessageBox(NULL, TEXT("The selected text is too long"), TEXT("OpenAI: Invalid question"), MB_ICONWARNING);
+		::MessageBox(nppData._nppHandle, TEXT("The selected text is too long"), TEXT("OpenAI: Invalid question"), MB_ICONWARNING);
 	}
 	else
 	{
-		::MessageBox(NULL, TEXT("Please try to select a question first"), TEXT("OpenAI: Unknown error"), MB_ICONERROR);
+		::MessageBox(nppData._nppHandle, TEXT("Please try to select a question first"), TEXT("OpenAI: Unknown error"), MB_ICONERROR);
 	}
 }
 
@@ -436,11 +436,11 @@ static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void
 		TCHAR errorResponseWide[512] = { 0, };
 		JSONResponse["error"]["message"].get_to(errorResponse);
 		std::copy(errorResponse.begin(), errorResponse.end(), errorResponseWide);
-		::MessageBox(NULL, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
+		::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
 	}
 	else
 	{
-		::MessageBox(NULL, TEXT("Missing 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
+		::MessageBox(nppData._nppHandle, TEXT("Missing 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
 	}
 	return realsize;
 }
@@ -457,7 +457,7 @@ This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
 	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, about, strlen(about), about_wide, 255);
 
 	// Show about
-	::MessageBox(NULL, about_wide, TEXT("About"), MB_OK);
+	::MessageBox(nppData._nppHandle, about_wide, TEXT("About"), MB_OK);
 }
 
 
