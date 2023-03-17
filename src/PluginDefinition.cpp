@@ -124,13 +124,13 @@ void commandMenuInit()
 	askChatGPTKey->_key = 0x4f; // 'O'
 
 	// Plugin menu items
-	setCommand(0, TEXT("Ask OpenAI"), askChatGPT, askChatGPTKey, false);
+	setCommand(0, TEXT("Ask &OpenAI"), askChatGPT, askChatGPTKey, false);
 	setCommand(1, TEXT("---"), NULL, NULL, false);
-    setCommand(2, TEXT("Edit Config"), openConfig, NULL, false);
-    setCommand(3, TEXT("Load Config"), loadConfig, NULL, false);
-    setCommand(4, TEXT("Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
+    setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
+    setCommand(3, TEXT("&Load Config"), loadConfig, NULL, false);
+    setCommand(4, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
 	setCommand(5, TEXT("---"), NULL, NULL, false);
-    setCommand(6, TEXT("About"), aboutDlg, NULL, false);
+    setCommand(6, TEXT("&About"), aboutDlg, NULL, false);
 }
 
 //
