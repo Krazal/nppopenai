@@ -19,10 +19,14 @@
 #define PLUGINDEFINITION_H
 #define CURL_STATICLIB
 
+// Plugin version info
+#define NPPOPENAI_VERSION "0.2"
+
 //
 // All difinitions of plugin interface
 //
 #include "PluginInterface.h"
+#include "DockingFeature/LoaderDlg.h"
 #include <string>
 
 //-------------------------------------//
@@ -76,8 +80,12 @@ void loadConfig();
 void openConfig();
 void keepQuestionToggler();
 void askChatGPT();
+
+/*** HELPER FUNCTIONS ***/
+std::string to_utf8(std::wstring);
+bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSONResponse);
 static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void aboutDlg();
-std::string to_utf8(std::wstring);
+
 
 #endif //PLUGINDEFINITION_H

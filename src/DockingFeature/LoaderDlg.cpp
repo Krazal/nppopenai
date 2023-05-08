@@ -15,42 +15,23 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#include "GoToLineDlg.h"
 #include "../PluginDefinition.h"
+#include "LoaderDlg.h"
 
 extern NppData nppData;
 
-INT_PTR CALLBACK DemoDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
+
+INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM, LPARAM) // UINT message, WPARAM wParam, LPARAM lParam
 {
 	switch (message) 
 	{
-		case WM_COMMAND : 
+		case WM_INITDIALOG:
 		{
-			switch (wParam)
-			{
-				case IDOK :
-				{
-					int line = getLine();
-					if (line != -1)
-					{
-						// Get the current scintilla
-						int which = -1;
-						::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&which);
-						if (which == -1)
-							return FALSE;
-						HWND curScintilla = (which == 0)?nppData._scintillaMainHandle:nppData._scintillaSecondHandle;
-
-						::SendMessage(curScintilla, SCI_ENSUREVISIBLE, line-1, 0);
-						::SendMessage(curScintilla, SCI_GOTOLINE, line-1, 0);
-					}
-					return TRUE;
-				}
-			}
-				return FALSE;
+			// goToCenter(); // <-- Using `DS_CENTER` style instead
+			return TRUE;
 		}
 
 		default :
-			return DockingDlgInterface::run_dlgProc(message, wParam, lParam);
+			return FALSE;
 	}
 }
-

@@ -16,6 +16,7 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "PluginDefinition.h"
+#include "DockingFeature/LoaderDlg.h"
 #include "menuCmdID.h"
 
 // For file + cURL + JSON ops
@@ -27,23 +28,18 @@
 #include <nlohmann/json.hpp>
 #include <regex>
 
+// For "async" cURL calls
+#include <thread>
+
+// For cURL JSON requests/responses
 using json = nlohmann::json;
 
-// Config file related constants
+// Loader window ("Please wait for OpenAI's response…")
+HANDLE _hModule;
+LoaderDlg _loaderDlg;
+
+// Config file related vars/constants (Most of it removed since v0.2 for better transparency)
 TCHAR iniFilePath[MAX_PATH];
-const TCHAR configFileName[]                     = TEXT("NppOpenAI.ini");
-const TCHAR sectionInfo[]                        = TEXT("INFO");
-const TCHAR sectionAPI[]                         = TEXT("API");
-const TCHAR sectionPlugin[]                      = TEXT("PLUGIN");
-const std::wstring configAPIKey_secretKey        = TEXT("secret_key");
-const std::wstring configAPIKey_model            = TEXT("model");
-const std::wstring configAPIKey_temperature      = TEXT("temperature");
-const std::wstring configAPIKey_maxTokens        = TEXT("max_tokens");
-const std::wstring configAPIKey_topP             = TEXT("top_p");
-const std::wstring configAPIKey_frequencyPenalty = TEXT("frequency_penalty");
-const std::wstring configAPIKey_presencePenalty  = TEXT("presence_penalty");
-const std::wstring configPluginKey_keepQuestion  = TEXT("keep_question");
-const std::wstring configPluginKey_totalTokens   = TEXT("total_tokens_used");
 
 // The plugin data that Notepad++ needs
 FuncItem funcItem[nbFunc];
@@ -55,21 +51,24 @@ NppData nppData;
 std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
 std::wstring configAPIValue_model            = TEXT("gpt-3.5-turbo"); // Recommended default model. NOTE: You can use use "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
-std::wstring configAPIValue_maxTokens        = TEXT("256");
+std::wstring configAPIValue_maxTokens        = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
 std::wstring configAPIValue_topP             = TEXT("0.8");
 std::wstring configAPIValue_frequencyPenalty = TEXT("0");
 std::wstring configAPIValue_presencePenalty  = TEXT("0");
 std::wstring configPluginValue_keepQuestion  = TEXT("1");
 bool isKeepQuestion                          = true;
 
-// Collect selected text here by Scintilla
+// Collect selected text by Scintilla here
 TCHAR selectedText[9999];
+
 
 //
 // Initialize your plugin data here
-// It will be called while plugin loading   
-void pluginInit(HANDLE /*hModule*/)
+// It will be called while plugin loading
+void pluginInit(HANDLE hModule)
 {
+	_hModule = hModule;
+	_loaderDlg.init((HINSTANCE)_hModule, nppData._nppHandle);
 }
 
 //
@@ -77,7 +76,7 @@ void pluginInit(HANDLE /*hModule*/)
 //
 void pluginCleanUp()
 {
-	::WritePrivateProfileString(sectionPlugin, configPluginKey_keepQuestion.c_str(), isKeepQuestion ? TEXT("1") : TEXT("0"), iniFilePath);
+	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), isKeepQuestion ? TEXT("1") : TEXT("0"), iniFilePath);
 }
 
 //
@@ -96,13 +95,13 @@ void commandMenuInit()
 	}
 
 	// Make plugin config file full file path name
-	PathAppend(iniFilePath, configFileName);
+	PathAppend(iniFilePath, TEXT("NppOpenAI.ini"));
 
 	// Load config file content
 	loadConfig();
 
 	// get the parameter value from plugin config
-	isKeepQuestion = (::GetPrivateProfileInt(sectionPlugin, configPluginKey_keepQuestion.c_str(), 0, iniFilePath) != 0);
+	isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 0, iniFilePath) != 0);
 
 
     //--------------------------------------------//
@@ -126,11 +125,11 @@ void commandMenuInit()
 	// Plugin menu items
 	setCommand(0, TEXT("Ask &OpenAI"), askChatGPT, askChatGPTKey, false);
 	setCommand(1, TEXT("---"), NULL, NULL, false);
-    setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
-    setCommand(3, TEXT("&Load Config"), loadConfig, NULL, false);
-    setCommand(4, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
+	setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
+	setCommand(3, TEXT("&Load Config"), loadConfig, NULL, false);
+	setCommand(4, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
 	setCommand(5, TEXT("---"), NULL, NULL, false);
-    setCommand(6, TEXT("&About"), aboutDlg, NULL, false);
+	setCommand(6, TEXT("&About"), aboutDlg, NULL, false);
 }
 
 //
@@ -140,6 +139,7 @@ void commandMenuCleanUp()
 {
 	// Don't forget to deallocate your shortcut here
 	delete funcItem[0]._pShKey;
+	_loaderDlg.destroy();
 }
 
 
@@ -178,42 +178,43 @@ void loadConfig()
 {
 	// Get the parameter values from plugin config
 	wchar_t tbuffer2[128];
-	if (!::GetPrivateProfileString(sectionAPI, configAPIKey_model.c_str(), NULL, tbuffer2, 32, iniFilePath))
+	if (!::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath))
 	{
-		::WritePrivateProfileString(sectionInfo, TEXT("; === PLEASE ENTER YOUR OPENAI SECRET API KEY BELOW =="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(sectionInfo, TEXT("; == For faster results, you may use \"code-davinci-002\" model (may be less accurate) ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(sectionInfo, TEXT("; == For more information about the [API] settings see the Playground: https://platform.openai.com/playground ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(sectionInfo, TEXT("; == You can create your secret API key here: https://platform.openai.com/account/api-keys ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(sectionInfo, TEXT("; == Token and pricing info: https://openai.com/api/pricing/ ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_secretKey.c_str(), configAPIValue_secretKey.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_model.c_str(), configAPIValue_model.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_temperature.c_str(), configAPIValue_temperature.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_maxTokens.c_str(), configAPIValue_maxTokens.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_topP.c_str(), configAPIValue_topP.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_frequencyPenalty.c_str(), configAPIValue_frequencyPenalty.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionAPI, configAPIKey_presencePenalty.c_str(), configAPIValue_presencePenalty.c_str(), iniFilePath);
-		::WritePrivateProfileString(sectionPlugin, configPluginKey_keepQuestion.c_str(), TEXT("1"), iniFilePath);
-		::WritePrivateProfileString(sectionPlugin, configPluginKey_totalTokens.c_str(), TEXT("0"), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; === PLEASE ENTER YOUR OPENAI SECRET API KEY BELOW =="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For faster results, you may use `code-davinci-002` model (may be less accurate) ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For more information about the [API] settings see the Playground: https://platform.openai.com/playground ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == You can create your secret API key here: https://platform.openai.com/account/api-keys ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Token and pricing info: https://openai.com/api/pricing/ ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Set `max_token=0` to skip this setting (infinite for `gpt-3.5-turbo` by default). The recommended value for `code-davinci-002` is 256, but you may increase to 4000 if you get truncated responses. ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("secret_key"), configAPIValue_secretKey.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("temperature"), configAPIValue_temperature.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("max_tokens"), configAPIValue_maxTokens.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("top_p"), configAPIValue_topP.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), configAPIValue_frequencyPenalty.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("API"), TEXT("presence_penalty"), configAPIValue_presencePenalty.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), TEXT("1"), iniFilePath);
+		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), TEXT("0"), iniFilePath);
 	}
-	::GetPrivateProfileString(sectionAPI, configAPIKey_secretKey.c_str(), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
+	::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
 	configAPIValue_secretKey = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_model.c_str(), NULL, tbuffer2, 32, iniFilePath); // text-davinci-003, code-davinci-002, ...
+	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // text-davinci-003, ...
 	configAPIValue_model = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_temperature.c_str(), NULL, tbuffer2, 16, iniFilePath); // 0-1
+	::GetPrivateProfileString(TEXT("API"), TEXT("temperature"), NULL, tbuffer2, 16, iniFilePath); // 0-1
 	configAPIValue_temperature = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_maxTokens.c_str(), NULL, tbuffer2, 5, iniFilePath); // 0-4000
+	::GetPrivateProfileString(TEXT("API"), TEXT("max_tokens"), NULL, tbuffer2, 5, iniFilePath); // 0-4000
 	configAPIValue_maxTokens = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_topP.c_str(), NULL, tbuffer2, 5, iniFilePath);
+	::GetPrivateProfileString(TEXT("API"), TEXT("top_p"), NULL, tbuffer2, 5, iniFilePath);
 	configAPIValue_topP = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_frequencyPenalty.c_str(), NULL, tbuffer2, 5, iniFilePath);
+	::GetPrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), NULL, tbuffer2, 5, iniFilePath);
 	configAPIValue_frequencyPenalty = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(sectionAPI, configAPIKey_presencePenalty.c_str(), NULL, tbuffer2, 5, iniFilePath);
+	::GetPrivateProfileString(TEXT("API"), TEXT("presence_penalty"), NULL, tbuffer2, 5, iniFilePath);
 	configAPIValue_presencePenalty = std::wstring(tbuffer2);
 }
 
@@ -249,98 +250,159 @@ void askChatGPT()
 	)
 	{
 
-		// Prepare cURL
-		CURL *curl;
-		CURLcode res;
-		curl_global_init(CURL_GLOBAL_ALL); // In windows, this will init the winsock stuff
+		// Data to post via cURL
+		json postData = {
+			{to_utf8(TEXT("model")),            to_utf8(configAPIValue_model)},
+			{to_utf8(TEXT("temperature")),      std::stod(configAPIValue_temperature)},
+			{to_utf8(TEXT("top_p")),             std::stod(configAPIValue_topP)},
+			{to_utf8(TEXT("frequency_penalty")), std::stod(configAPIValue_frequencyPenalty)},
+			{to_utf8(TEXT("presence_penalty")),  std::stod(configAPIValue_presencePenalty)}
+		};
 
-		// Get a cURL handle
-		curl = curl_easy_init();
-		if (curl)
+		// Add `max_tokens` setting
+		if (std::stoi(configAPIValue_maxTokens) > 0)
 		{
-			json postData = {
-				{to_utf8(configAPIKey_model),            to_utf8(configAPIValue_model)},
-				{to_utf8(configAPIKey_temperature),      std::stod(configAPIValue_temperature)},
-				{to_utf8(configAPIKey_maxTokens),        std::stoi(configAPIValue_maxTokens)}, // Int!
-				{to_utf8(configAPIKey_topP),             std::stod(configAPIValue_topP)},
-				{to_utf8(configAPIKey_frequencyPenalty), std::stod(configAPIValue_frequencyPenalty)},
-				{to_utf8(configAPIKey_presencePenalty),  std::stod(configAPIValue_presencePenalty)}
+			postData[to_utf8(TEXT("max_tokens"))] = std::stoi(configAPIValue_maxTokens); // Int!
+		}
+
+		// Update postData + OpenAI URL
+		std::string OpenAIURL;
+		if (to_utf8(configAPIValue_model).rfind("gpt-", 0) == 0) // gpt-3.5-turbo (recommended), gpt-3.5-turbo-0301 (snapshot of `gpt-3.5-turbo` from March 1st 2023). Prepare for GPT-4!
+		{
+			/* You may set the behavior of the assistant. This is NOT a real chat yet, as we don't have conversation history!
+			postData["messages"][0] = { // 
+				{"role",    "system"},
+				{"content", "You are a helpful assistant."},
 			};
+			// */
+			postData["messages"][0] = { // Use 1, if you set the behavior of the assistant
+				{"role",    "user"},
+				{"content", to_utf8(selectedText)}
+			};
+			OpenAIURL = "https://api.openai.com/v1/chat/completions";
+		}
+		else
+		{
+			postData["prompt"] = to_utf8(selectedText);
+			OpenAIURL = "https://api.openai.com/v1/completions";
+		}
 
-			// Update postData + OpenAI URL
-			std::string OpenAIURL;
-			if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0) // gpt-3.5-turbo (recommended), gpt-3.5-turbo-0301 (snapshot of `gpt-3.5-turbo` from March 1st 2023)
-			{
-				/* You may set the behavior of the assistant. This is NOT a real chat yet, as we don't have conversation history!
-				postData["messages"][0] = { // 
-					{"role",    "system"},
-					{"content", "You are a helpful assistant."},
-				};
-				// */
-				postData["messages"][0] = { // Use 1, if you set the behavior of the assistant
-					{"role",    "user"},
-					{"content", to_utf8(selectedText)}
-				};
-				OpenAIURL = "https://api.openai.com/v1/chat/completions";
-			}
-			else
-			{
-				postData["prompt"] = to_utf8(selectedText);
-				OpenAIURL = "https://api.openai.com/v1/completions";
-			}
+		/* // TEST: REQUEST
+		::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONRequest.c_str());
+		return;
+		// */
 
+		// Create/Show a loader dialog ("Please wait..."), disable main window
+		_loaderDlg.doDialog();
+		::EnableWindow(nppData._nppHandle, FALSE);
+
+		// Prepare to start a new thread
+		auto curlLambda = [](std::string OpenAIURL, json postData, HWND curScintilla)
+		{
 			std::string JSONRequest = postData.dump();
 
-			/* // TEST
-			::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONRequest.c_str());
-			return;
-			// */
-
-			// Get the CA bundle file for cURL
-			TCHAR CACertFilePath[MAX_PATH];
-			const TCHAR CACertFileName[] = TEXT("NppOpenAI\\cacert.pem");
-			::SendMessage(nppData._nppHandle, NPPM_GETPLUGINHOMEPATH, MAX_PATH, (LPARAM)CACertFilePath); // TODO: optimize path length (https://npp-user-manual.org/docs/plugin-communication/#nppm-getpluginhomepath)
-			PathAppend(CACertFilePath, CACertFileName); // E.g. "C:\Program Files (x86)\Notepad++\plugins\NppOpenAI\cacert.pem"
-
-			// Set cURL opts
-			struct curl_slist *headerList  = NULL;
-			std::string curlBuffer;
-			std::wstring tmpBearer = TEXT("Authorization: Bearer ") + configAPIValue_secretKey;
-			headerList = curl_slist_append(headerList, to_utf8(tmpBearer).c_str());
-			headerList = curl_slist_append(headerList, "Content-Type: application/json");
-			curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // https://api.openai.com/v1/completions
-			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-			curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
-			curl_easy_setopt(curl, CURLOPT_CAINFO, to_utf8(CACertFilePath).c_str());
-			curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
-			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, JSONRequest.c_str());
-			curl_easy_setopt(curl, CURLOPT_POST, 1);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlBuffer);
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIcURLCallback); // Send all data to this function
-
-			// Perform the request, res will get the return code
-			res = curl_easy_perform(curl);
-			bool isCurlOK = (res == CURLE_OK);
-
-			// Handle response + check for errors
-			if (!isCurlOK)
-			{
-				TCHAR curl_error_wide[512] = { 0, };
-				char curl_error[512];
-				sprintf(curl_error, "An error occurred when accessing the OpenAI server:\n%s", curl_easy_strerror(res));
-				MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, curl_error, strlen(curl_error), curl_error_wide, 512);
-				::MessageBox(nppData._nppHandle, curl_error_wide, TEXT("OpenAI: Connection Error"), MB_ICONEXCLAMATION);
-			}
-
-			// Cleanup (including headers)
-			curl_easy_cleanup(curl);
-			curl_slist_free_all(headerList);
-			if (!isCurlOK)
+			// Try to call OpenAI and store the results in `JSONBuffer`
+			std::string JSONBuffer;
+			if (!callOpenAI(OpenAIURL, JSONRequest, JSONBuffer))
 			{
 				return;
 			}
-		}
+
+			// Hide loader dialog, enable main window
+			_loaderDlg.display(false);
+			::EnableWindow(nppData._nppHandle, TRUE);
+			::SetForegroundWindow(nppData._nppHandle);
+
+			/* // TEST: RESPONSE
+			::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONBuffer.c_str());
+			// */
+
+			// Parse response
+			try
+			{
+				json JSONResponse = json::parse(JSONBuffer);
+
+				// Handle JSON response
+				if (JSONResponse.contains("choices") && JSONResponse.contains("usage"))
+				{
+
+					// Get the appropriate response text
+					std::string responseText;
+					if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0)
+					{
+						JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
+					}
+					else
+					{
+						JSONResponse["choices"][0]["text"].get_to(responseText);
+					}
+
+					// Update response text
+					responseText.erase(0, responseText.find_first_not_of("\n"));
+					if (isKeepQuestion)
+					{
+						responseText = to_utf8(selectedText) + "\n\n" + responseText;
+					}
+
+					// Update line endings
+					switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
+					{
+						case SC_EOL_CRLF: // 0
+							responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
+							break;
+						case SC_EOL_CR: // 1
+							responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
+							break;
+					}
+					char* tmpResponseText = &responseText[0];
+
+					// Replace selection with OpenAI response (including original question -- optional)
+					::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
+
+					// Save total tokens spent/used so far
+					unsigned int totalTokens = 0;
+					JSONResponse["usage"]["total_tokens"].get_to(totalTokens);
+					totalTokens += ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("total_tokens_used"), 0, iniFilePath);
+					std::wstring tmpTotalTokens = std::to_wstring(totalTokens);
+					::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), tmpTotalTokens.c_str(), iniFilePath);
+
+					// Alert: incomplete response OR content filter
+					if (JSONResponse["choices"][0]["finish_reason"] == "length")
+					{
+						::MessageBox(nppData._nppHandle, TEXT("The answer may be incomplete.\n\nAfter closing this message the configuration file will be opened. It's recommended to set `max_tokens=0` to use default (infinite) OpenAI setting OR increase e.g. to 3000.\n\nAfter saving the file don't forget to click Plugins » NppOpenAI » Load config."), TEXT("OpenAI: Incomplete answer"), MB_ICONINFORMATION);
+						openConfig();
+					}
+					else if (JSONResponse["choices"][0]["finish_reason"] == "content_filter") // Categories: hate, hate/threatening, self-harm, sexual, sexual/minors, violence, and violence/graphic.
+					{
+						::MessageBox(nppData._nppHandle, TEXT("The answer has been omitted due to a flag from OpenAI content filters."), TEXT("OpenAI: Moderation"), MB_ICONWARNING);
+					}
+				}
+				else if (JSONResponse.contains("error"))
+				{
+					std::string errorResponse;
+					TCHAR errorResponseWide[512] = { 0, };
+					JSONResponse["error"]["message"].get_to(errorResponse);
+					std::copy(errorResponse.begin(), errorResponse.end(), errorResponseWide);
+					::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
+				}
+				else
+				{
+					::MessageBox(nppData._nppHandle, TEXT("Missing 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
+				}
+			}
+			catch (json::parse_error& ex)
+			{
+				TCHAR exWhatWide[1024] = { 0, };
+				char exWhat[1024];
+				sprintf(exWhat, "Invalid or non-JSON response:\n\"%s\"\n\nDetails:\n%s", JSONBuffer.c_str(), ex.what());
+				MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, exWhat, strlen(exWhat), exWhatWide, 512);
+				::MessageBox(nppData._nppHandle, exWhatWide, TEXT("OpenAI: Invalid response"), MB_ICONERROR);
+			}
+		};
+
+		// Start + detach thread
+		std::thread curlThread(curlLambda, OpenAIURL, postData, curScintilla);
+		curlThread.detach();
 	}
 	else if (!isSecretKey)
 	{
@@ -367,82 +429,85 @@ void askChatGPT()
 	}
 }
 
-// Handle cURL response (callback)
-static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp)
+
+
+/*** HELPER FUNCTIONS ***/
+
+
+// Convert std::wstring to std::string
+std::string to_utf8(std::wstring wide_string)
 {
-	size_t realsize = size * nmemb;
-	auto& memoryBuffer = *static_cast<std::string*>(userp);
-	memoryBuffer.append(static_cast<char*>(contents), realsize);
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_conv;
+	return utf8_conv.to_bytes(wide_string);
+}
 
-	// Get current Scintilla
-	long currentEdit;
-	::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&currentEdit);
-	HWND curScintilla = (currentEdit == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle;
+// Call OpenAI via cURL
+bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSONResponse)
+{
 
-	/* // TEST
-	::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)memoryBuffer.c_str());
-	// */
+	// Prepare cURL
+	CURL* curl;
+	CURLcode res;
+	curl_global_init(CURL_GLOBAL_ALL); // In windows, this will init the winsock stuff
 
-	// Parse response
-	json JSONResponse = json::parse(memoryBuffer);
-
-	// Handle JSON response
-	if (JSONResponse.contains("choices") && JSONResponse.contains("usage"))
+	// Get a cURL handle
+	curl = curl_easy_init();
+	if (!curl)
 	{
-
-		// Get the appropriate response text
-		std::string responseText;
-		if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0)
-		{
-			JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
-		}
-		else
-		{
-			JSONResponse["choices"][0]["text"].get_to(responseText);
-		}
-
-		// Update response text
-		responseText.erase(0, responseText.find_first_not_of("\n"));
-		if (isKeepQuestion)
-		{
-			responseText = to_utf8(selectedText) + "\n\n" + responseText;
-		}
-
-		// Update line endings
-		switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
-		{
-			case SC_EOL_CRLF: // 0
-				responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
-				break;
-			case SC_EOL_CR: // 1
-				responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
-				break;
-		}
-		char* tmpResponseText = &responseText[0];
-
-		// Replace selection with OpenAI response (including original question -- optional)
-		::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
-
-		// Save total tokens spent/used so far
-		unsigned int totalTokens = 0;
-		JSONResponse["usage"]["total_tokens"].get_to(totalTokens);
-		totalTokens += ::GetPrivateProfileInt(sectionPlugin, configPluginKey_totalTokens.c_str(), 0, iniFilePath);
-		std::wstring tmpTotalTokens = std::to_wstring(totalTokens);
-		::WritePrivateProfileString(sectionPlugin, configPluginKey_totalTokens.c_str(), tmpTotalTokens.c_str(), iniFilePath);
+		return false;
 	}
-	else if (JSONResponse.contains("error"))
+
+	// Get the CA bundle file for cURL
+	TCHAR CACertFilePath[MAX_PATH];
+	const TCHAR CACertFileName[] = TEXT("NppOpenAI\\cacert.pem");
+	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINHOMEPATH, MAX_PATH, (LPARAM)CACertFilePath); // TODO: optimize path length (https://npp-user-manual.org/docs/plugin-communication/#nppm-getpluginhomepath)
+	PathAppend(CACertFilePath, CACertFileName); // E.g. "C:\Program Files (x86)\Notepad++\plugins\NppOpenAI\cacert.pem"
+
+	// Prepare cURL SetOpts
+	struct curl_slist* headerList = NULL;
+	std::wstring tmpBearer = TEXT("Authorization: Bearer ") + configAPIValue_secretKey;
+	headerList = curl_slist_append(headerList, to_utf8(tmpBearer).c_str());
+	headerList = curl_slist_append(headerList, "Content-Type: application/json");
+	char userAgent[255];
+	sprintf(userAgent, "NppOpenAI/%s", NPPOPENAI_VERSION); // E.g. "NppOpenAI/0.2"
+
+	// cURL SetOpts
+	curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // https://api.openai.com/v1/completions
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
+	curl_easy_setopt(curl, CURLOPT_CAINFO, to_utf8(CACertFilePath).c_str());
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, JSONRequest.c_str());
+	curl_easy_setopt(curl, CURLOPT_POST, 1);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &JSONResponse);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIcURLCallback); // Send all data to this function
+
+	// Perform the request, res will get the return code
+	res = curl_easy_perform(curl);
+	bool isCurlOK = (res == CURLE_OK);
+
+	// Handle response + check for errors
+	if (!isCurlOK)
 	{
-		std::string errorResponse;
-		TCHAR errorResponseWide[512] = { 0, };
-		JSONResponse["error"]["message"].get_to(errorResponse);
-		std::copy(errorResponse.begin(), errorResponse.end(), errorResponseWide);
-		::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
+		TCHAR curl_error_wide[512] = { 0, };
+		char curl_error[512];
+		sprintf(curl_error, "An error occurred while accessing the OpenAI server:\n%s", curl_easy_strerror(res));
+		MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, curl_error, strlen(curl_error), curl_error_wide, 512);
+		::MessageBox(nppData._nppHandle, curl_error_wide, TEXT("OpenAI: Connection Error"), MB_ICONEXCLAMATION);
 	}
-	else
-	{
-		::MessageBox(nppData._nppHandle, TEXT("Missing 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
-	}
-	return realsize;
+
+	// Cleanup (including headers)
+	curl_easy_cleanup(curl);
+	curl_slist_free_all(headerList);
+	return isCurlOK;
+}
+
+// Handle cURL callback
+static size_t OpenAIcURLCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+	((std::string*)userp)->append((char*)contents, size * nmemb);
+	return size * nmemb;
 }
 
 // About
@@ -451,21 +516,11 @@ void aboutDlg()
 	char about[255];
 	TCHAR about_wide[255] = { 0, };
 	sprintf(about, "\
-OpenAI (aka. ChatGPT) plugin for Notepad++ v0.1.5 by Richard Stockinger\n\n\
+OpenAI (aka. ChatGPT) plugin for Notepad++ v%s by Richard Stockinger\n\n\
 This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
-", LIBCURL_VERSION, NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
+", NPPOPENAI_VERSION, LIBCURL_VERSION, NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
 	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, about, strlen(about), about_wide, 255);
 
 	// Show about
 	::MessageBox(nppData._nppHandle, about_wide, TEXT("About"), MB_OK);
-}
-
-
-// HELPER FUNCTIONS //
-
-// Convert std::wstring to std::string
-std::string to_utf8(std::wstring wide_string)
-{
-	static std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_conv;
-	return utf8_conv.to_bytes(wide_string);
 }
