@@ -229,7 +229,7 @@
     <PostBuildEvent>
       <Command>copy ..\license.txt ..\bin\license.txt
 copy ..\readme.FIRST ..\bin\readme.FIRST
-powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(Platform)\*', '$(TargetPath)' -DestinationPath '$(TargetDir)NppOpenAI.zip' -Force</Command>
+powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(PlatformTarget)\*', '$(TargetPath)' -DestinationPath '$(TargetDir)NppOpenAI.zip' -Force</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -258,7 +258,7 @@ powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(Platform)\*', '$(
     <PostBuildEvent>
       <Command>copy ..\license.txt ..\bin64\license.txt
 copy ..\readme.FIRST ..\bin64\readme.FIRST
-powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(Platform)\*', '$(TargetPath)' -DestinationPath '$(TargetDir)NppOpenAI.zip' -Force</Command>
+powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(PlatformTarget)\*', '$(TargetPath)' -DestinationPath '$(TargetDir)NppOpenAI.zip' -Force</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
