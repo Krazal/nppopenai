@@ -49,6 +49,7 @@ NppData nppData;
 
 // Config file related vars
 std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
+std::wstring configAPIValue_baseURL          = TEXT("https://api.openai.com/"); // Trailing '/' will be erased (if any)
 std::wstring configAPIValue_model            = TEXT("gpt-3.5-turbo"); // Recommended default model. NOTE: You can use use "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
 std::wstring configAPIValue_maxTokens        = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
@@ -196,6 +197,16 @@ void loadConfig()
 		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), TEXT("1"), iniFilePath);
 		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), TEXT("0"), iniFilePath);
 	}
+
+	// Get API URL (v0.2.1)
+	if (!::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath))
+	{
+		::WritePrivateProfileString(TEXT("API"), TEXT("api_url"), configAPIValue_baseURL.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == The endpoints, like '/v1/chat/completions' will be added to `api_url` automatically. The trailing slash is optional in `api_url`. You should use a query string for custom URL, e.g. 'http://localhost/openai_test.php?endpoint=' ="), TEXT(""), iniFilePath);
+	}
+	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
+	configAPIValue_baseURL = std::wstring(tbuffer2);
+
 	::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
 	configAPIValue_secretKey = std::wstring(tbuffer2);
 
@@ -252,8 +263,8 @@ void askChatGPT()
 
 		// Data to post via cURL
 		json postData = {
-			{to_utf8(TEXT("model")),            to_utf8(configAPIValue_model)},
-			{to_utf8(TEXT("temperature")),      std::stod(configAPIValue_temperature)},
+			{to_utf8(TEXT("model")),             to_utf8(configAPIValue_model)},
+			{to_utf8(TEXT("temperature")),       std::stod(configAPIValue_temperature)},
 			{to_utf8(TEXT("top_p")),             std::stod(configAPIValue_topP)},
 			{to_utf8(TEXT("frequency_penalty")), std::stod(configAPIValue_frequencyPenalty)},
 			{to_utf8(TEXT("presence_penalty")),  std::stod(configAPIValue_presencePenalty)}
@@ -266,7 +277,7 @@ void askChatGPT()
 		}
 
 		// Update postData + OpenAI URL
-		std::string OpenAIURL;
+		std::string OpenAIURL = to_utf8(configAPIValue_baseURL).erase(to_utf8(configAPIValue_baseURL).find_last_not_of("/") + 1);
 		if (to_utf8(configAPIValue_model).rfind("gpt-", 0) == 0) // gpt-3.5-turbo (recommended), gpt-3.5-turbo-0301 (snapshot of `gpt-3.5-turbo` from March 1st 2023). Prepare for GPT-4!
 		{
 			/* You may set the behavior of the assistant. This is NOT a real chat yet, as we don't have conversation history!
@@ -279,12 +290,12 @@ void askChatGPT()
 				{"role",    "user"},
 				{"content", to_utf8(selectedText)}
 			};
-			OpenAIURL = "https://api.openai.com/v1/chat/completions";
+			OpenAIURL += "/v1/chat/completions";
 		}
 		else
 		{
 			postData["prompt"] = to_utf8(selectedText);
-			OpenAIURL = "https://api.openai.com/v1/completions";
+			OpenAIURL += "/v1/completions";
 		}
 
 		/* // TEST: REQUEST
@@ -308,7 +319,7 @@ void askChatGPT()
 				return;
 			}
 
-			// Hide loader dialog, enable main window
+			// Hide loader dialog (`destroy()` doesn't necessary), enable main window
 			_loaderDlg.display(false);
 			::EnableWindow(nppData._nppHandle, TRUE);
 			::SetForegroundWindow(nppData._nppHandle);
@@ -337,27 +348,8 @@ void askChatGPT()
 						JSONResponse["choices"][0]["text"].get_to(responseText);
 					}
 
-					// Update response text
-					responseText.erase(0, responseText.find_first_not_of("\n"));
-					if (isKeepQuestion)
-					{
-						responseText = to_utf8(selectedText) + "\n\n" + responseText;
-					}
-
-					// Update line endings
-					switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
-					{
-						case SC_EOL_CRLF: // 0
-							responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
-							break;
-						case SC_EOL_CR: // 1
-							responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
-							break;
-					}
-					char* tmpResponseText = &responseText[0];
-
-					// Replace selection with OpenAI response (including original question -- optional)
-					::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
+					// Replace selected text with response in the main Notepad++ window
+					replaceSelected(curScintilla, responseText);
 
 					// Save total tokens spent/used so far
 					unsigned int totalTokens = 0;
@@ -392,11 +384,11 @@ void askChatGPT()
 			}
 			catch (json::parse_error& ex)
 			{
-				TCHAR exWhatWide[1024] = { 0, };
-				char exWhat[1024];
-				sprintf(exWhat, "Invalid or non-JSON response:\n\"%s\"\n\nDetails:\n%s", JSONBuffer.c_str(), ex.what());
-				MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, exWhat, strlen(exWhat), exWhatWide, 512);
-				::MessageBox(nppData._nppHandle, exWhatWide, TEXT("OpenAI: Invalid response"), MB_ICONERROR);
+				std::string responseException = ex.what();
+				std::string responseText      = JSONBuffer.c_str();
+				responseText += "\n\n" + responseException;
+				replaceSelected(curScintilla, responseText);
+				::MessageBox(nppData._nppHandle, TEXT("Invalid or non-JSON response!\n\nSee details in the main window"), TEXT("OpenAI: Invalid response"), MB_ICONERROR);
 			}
 		};
 
@@ -472,7 +464,7 @@ bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSO
 	sprintf(userAgent, "NppOpenAI/%s", NPPOPENAI_VERSION); // E.g. "NppOpenAI/0.2"
 
 	// cURL SetOpts
-	curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // https://api.openai.com/v1/completions
+	curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // E.g. "https://api.openai.com/v1/completions"
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
 	curl_easy_setopt(curl, CURLOPT_CAINFO, to_utf8(CACertFilePath).c_str());
@@ -508,6 +500,33 @@ static size_t OpenAIcURLCallback(void* contents, size_t size, size_t nmemb, void
 {
 	((std::string*)userp)->append((char*)contents, size * nmemb);
 	return size * nmemb;
+}
+
+// Replace selected text with the given string (OpenAI response)
+void replaceSelected(HWND curScintilla, std::string responseText)
+{
+
+	// Update response text
+	responseText.erase(0, responseText.find_first_not_of("\n"));
+	if (isKeepQuestion)
+	{
+		responseText = to_utf8(selectedText) + "\n\n" + responseText;
+	}
+
+	// Update line endings
+	switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
+	{
+	case SC_EOL_CRLF: // 0
+		responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
+		break;
+	case SC_EOL_CR: // 1
+		responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
+		break;
+	}
+	char* tmpResponseText = &responseText[0];
+
+	// Replace selection with OpenAI response (including original question -- optional)
+	::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
 }
 
 // About
