@@ -339,7 +339,7 @@ void askChatGPT()
 
 					// Get the appropriate response text
 					std::string responseText;
-					if (to_utf8(configAPIValue_model).rfind("gpt-3.5-turbo", 0) == 0)
+					if (to_utf8(configAPIValue_model).rfind("gpt-", 0) == 0)
 					{
 						JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
 					}
