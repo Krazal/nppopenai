@@ -50,7 +50,7 @@ NppData nppData;
 // Config file related vars
 std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
 std::wstring configAPIValue_baseURL          = TEXT("https://api.openai.com/"); // Trailing '/' will be erased (if any)
-std::wstring configAPIValue_model            = TEXT("gpt-3.5-turbo"); // Recommended default model. NOTE: You can use use "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
+std::wstring configAPIValue_model            = TEXT("gpt-4"); // Recommended default model. NOTE: You can use use "gpt-3.5-turbo", "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
 std::wstring configAPIValue_maxTokens        = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
 std::wstring configAPIValue_topP             = TEXT("0.8");
