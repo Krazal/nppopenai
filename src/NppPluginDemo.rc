@@ -19,8 +19,8 @@
 
 #include <windows.h>
 
-#define VERSION_VALUE "0.2.1.2\0"
-#define VERSION_DIGITALVALUE 0, 2, 1, 2
+#define VERSION_VALUE "0.3.0.0\0"
+#define VERSION_DIGITALVALUE 0, 3, 0, 0
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION	VERSION_DIGITALVALUE
@@ -43,7 +43,7 @@ BEGIN
 			VALUE	"FileDescription",	"OpenAI plugin for Notepad++\0"
 			VALUE	"FileVersion",	VERSION_VALUE
 			VALUE	"InternalName",	"NppOpenAI.dll\0"
-			VALUE	"LegalCopyright",	"Copyright 2023 by Richard Stockinger\0"
+			VALUE	"LegalCopyright",	"Copyright 2023-2024 by Richard Stockinger\0"
 			VALUE	"OriginalFilename",	"NppOpenAI.dll\0"
 			VALUE	"ProductName",	"NppOpenAI\0"
 			VALUE	"ProductVersion",	VERSION_VALUE

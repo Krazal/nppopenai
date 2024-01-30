@@ -20,7 +20,7 @@
 #define CURL_STATICLIB
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.2.1.2"
+#define NPPOPENAI_VERSION "0.3.0.0"
 
 //
 // All difinitions of plugin interface
@@ -42,7 +42,7 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("NppOpenAI");
 //
 // Here define the number of your plugin commands
 //
-const int nbFunc = 7;
+const int nbFunc = 9;
 
 
 //
@@ -78,6 +78,7 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //
 void loadConfig();
 void openConfig();
+void openInsturctions();
 void keepQuestionToggler();
 void askChatGPT();
 
@@ -86,6 +87,7 @@ std::string to_utf8(std::wstring);
 bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSONResponse);
 static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void replaceSelected(HWND curScintilla, std::string responseText);
+void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption);
 void aboutDlg();
 
 

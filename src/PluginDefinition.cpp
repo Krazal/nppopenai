@@ -38,8 +38,9 @@ using json = nlohmann::json;
 HANDLE _hModule;
 LoaderDlg _loaderDlg;
 
-// Config file related vars/constants (Most of it removed since v0.2 for better transparency)
+// Config file related vars/constants
 TCHAR iniFilePath[MAX_PATH];
+TCHAR instructionsFilePath[MAX_PATH]; // Aka. file for OpenAI system message
 
 // The plugin data that Notepad++ needs
 FuncItem funcItem[nbFunc];
@@ -51,12 +52,12 @@ NppData nppData;
 std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
 std::wstring configAPIValue_baseURL          = TEXT("https://api.openai.com/"); // Trailing '/' will be erased (if any)
 std::wstring configAPIValue_model            = TEXT("gpt-4"); // Recommended default model. NOTE: You can use use "gpt-3.5-turbo", "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
+std::wstring configAPIValue_instructions     = TEXT(""); // System message ("instuctions") for the OpenAI API e.g. "Translate the given text into English." or "Create a PHP function based on the received text.". Leave empty to skip.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
 std::wstring configAPIValue_maxTokens        = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
 std::wstring configAPIValue_topP             = TEXT("0.8");
 std::wstring configAPIValue_frequencyPenalty = TEXT("0");
 std::wstring configAPIValue_presencePenalty  = TEXT("0");
-std::wstring configPluginValue_keepQuestion  = TEXT("1");
 bool isKeepQuestion                          = true;
 
 // Collect selected text by Scintilla here
@@ -85,24 +86,23 @@ void pluginCleanUp()
 // You should fill your plugins commands here
 void commandMenuInit()
 {
+	TCHAR configDirPath[MAX_PATH];
 
-	// Get path of plugin config
-	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINSCONFIGDIR, MAX_PATH, (LPARAM)iniFilePath);
+	// Get path to the plugin config + instructions (aka. OpenAI system message) file
+	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINSCONFIGDIR, MAX_PATH, (LPARAM)configDirPath);
 
 	// If config path doesn't exist, create it
-	if (PathFileExists(iniFilePath) == FALSE)
+	if (PathFileExistsW(configDirPath) == FALSE) // Modified from `PathFileExists()`
 	{
-		::CreateDirectory(iniFilePath, NULL);
+		::CreateDirectory(configDirPath, NULL);
 	}
 
-	// Make plugin config file full file path name
-	PathAppend(iniFilePath, TEXT("NppOpenAI.ini"));
+	// Prepare config + instructions (aka. system message) file
+	PathCombine(iniFilePath, configDirPath, TEXT("NppOpenAI.ini"));
+	PathCombine(instructionsFilePath, configDirPath, TEXT("NppOpenAI_instructions"));
 
 	// Load config file content
 	loadConfig();
-
-	// get the parameter value from plugin config
-	isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 0, iniFilePath) != 0);
 
 
     //--------------------------------------------//
@@ -127,10 +127,12 @@ void commandMenuInit()
 	setCommand(0, TEXT("Ask &OpenAI"), askChatGPT, askChatGPTKey, false);
 	setCommand(1, TEXT("---"), NULL, NULL, false);
 	setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
-	setCommand(3, TEXT("&Load Config"), loadConfig, NULL, false);
-	setCommand(4, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
+	setCommand(3, TEXT("Edit &Instructions"), openInsturctions, NULL, false);
+	setCommand(4, TEXT("&Load Config"), loadConfig, NULL, false);
 	setCommand(5, TEXT("---"), NULL, NULL, false);
-	setCommand(6, TEXT("&About"), aboutDlg, NULL, false);
+	setCommand(6, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
+	setCommand(7, TEXT("---"), NULL, NULL, false);
+	setCommand(8, TEXT("&About"), aboutDlg, NULL, false);
 }
 
 //
@@ -168,18 +170,14 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //-- STEP 4. DEFINE YOUR ASSOCIATED FUNCTIONS --//
 //----------------------------------------------//
 
-// Open config file
-void openConfig()
-{
-	::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)iniFilePath);
-}
-
 // Load (and create if not found) config file
 void loadConfig()
 {
-	// Get the parameter values from plugin config
-	wchar_t tbuffer2[128];
-	if (!::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath))
+	wchar_t tbuffer2[256];
+	FILE* instructionsFile;
+
+	// Set up a default plugin config (if necessary)
+	if (::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath) == NULL)
 	{
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; === PLEASE ENTER YOUR OPENAI SECRET API KEY BELOW =="), TEXT(""), iniFilePath);
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For faster results, you may use `code-davinci-002` model (may be less accurate) ="), TEXT(""), iniFilePath);
@@ -198,17 +196,35 @@ void loadConfig()
 		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), TEXT("0"), iniFilePath);
 	}
 
-	// Get API URL (v0.2.1)
-	if (!::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath))
+	// Set up the default API URL (v0.2.1)
+	if (::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath) == NULL)
 	{
 		::WritePrivateProfileString(TEXT("API"), TEXT("api_url"), configAPIValue_baseURL.c_str(), iniFilePath);
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == The endpoints, like '/v1/chat/completions' will be added to `api_url` automatically. The trailing slash is optional in `api_url`. You should use a query string for custom URL, e.g. 'http://localhost/openai_test.php?endpoint=' ="), TEXT(""), iniFilePath);
 	}
-	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
-	configAPIValue_baseURL = std::wstring(tbuffer2);
 
+	// Get instructions (aka. system message) file
+	if ((instructionsFile = _wfopen(instructionsFilePath, L"r, ccs=UNICODE")) != NULL)
+	{
+		wchar_t instructionsBuffer[9999];
+		configAPIValue_instructions = TEXT("");
+		while (fgetws(instructionsBuffer, 9999, instructionsFile) != NULL)
+		{
+			configAPIValue_instructions += instructionsBuffer;
+		}
+		fclose(instructionsFile);
+	}
+	else
+	{
+		instructionsFileError(TEXT("The instructions (system message) file was not found:\n\n"), TEXT("NppOpenAI: missing instructions file"));
+	}
+
+	// Get API config/settings
 	::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
 	configAPIValue_secretKey = std::wstring(tbuffer2);
+
+	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 128, iniFilePath); // sk-abc123...
+	configAPIValue_baseURL = std::wstring(tbuffer2);
 
 	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // text-davinci-003, ...
 	configAPIValue_model = std::wstring(tbuffer2);
@@ -227,13 +243,9 @@ void loadConfig()
 
 	::GetPrivateProfileString(TEXT("API"), TEXT("presence_penalty"), NULL, tbuffer2, 5, iniFilePath);
 	configAPIValue_presencePenalty = std::wstring(tbuffer2);
-}
 
-// Toggle "Keep my question" menu item
-void keepQuestionToggler()
-{
-	isKeepQuestion = !isKeepQuestion;
-	::CheckMenuItem(::GetMenu(nppData._nppHandle), funcItem[4]._cmdID, MF_BYCOMMAND | (isKeepQuestion ? MF_CHECKED : MF_UNCHECKED));
+	// Get Plugin config/settings
+	isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 1, iniFilePath) != 0);
 }
 
 // Call ChatGPT API
@@ -252,13 +264,13 @@ void askChatGPT()
 
 	// Check if everything is fine
 	bool isSecretKey = configAPIValue_secretKey != TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE");
-	bool isEditable   = !(int)::SendMessage(curScintilla, SCI_GETREADONLY, 0, 0);
+	bool isEditable  = !(int)::SendMessage(curScintilla, SCI_GETREADONLY, 0, 0);
 	if ( isSecretKey
 		&& isEditable
 		&& selend > selstart
 		&& sellength < 9999
 		&& ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTWORD, 9999, (LPARAM)selectedText)
-	)
+		)
 	{
 
 		// Data to post via cURL
@@ -280,13 +292,16 @@ void askChatGPT()
 		std::string OpenAIURL = to_utf8(configAPIValue_baseURL).erase(to_utf8(configAPIValue_baseURL).find_last_not_of("/") + 1);
 		if (to_utf8(configAPIValue_model).rfind("gpt-", 0) == 0) // gpt-3.5-turbo (recommended), gpt-3.5-turbo-0301 (snapshot of `gpt-3.5-turbo` from March 1st 2023). Prepare for GPT-4!
 		{
-			/* You may set the behavior of the assistant. This is NOT a real chat yet, as we don't have conversation history!
-			postData["messages"][0] = { // 
-				{"role",    "system"},
-				{"content", "You are a helpful assistant."},
-			};
-			// */
-			postData["messages"][0] = { // Use 1, if you set the behavior of the assistant
+			int msgCounter = 0;
+			if (configAPIValue_instructions != TEXT(""))
+			{
+				postData["messages"][msgCounter] = {
+					{"role",    "system"},
+					{"content", to_utf8(configAPIValue_instructions)}
+				};
+				msgCounter++;
+			}
+			postData["messages"][msgCounter] = { // Use 1, if you set the behavior of the assistant
 				{"role",    "user"},
 				{"content", to_utf8(selectedText)}
 			};
@@ -421,10 +436,29 @@ void askChatGPT()
 	}
 }
 
+// Open config file
+void openConfig()
+{
+	::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)iniFilePath);
+}
 
+// Open insturctions file
+void openInsturctions()
+{
+	::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)instructionsFilePath);
+	::MessageBox(nppData._nppHandle, TEXT("You can give instructions (system message) to OpenAI here, e.g.: Translate the received text into English.\n\n\
+Leave the file empty to skip the instructions.\n\n\
+After saving this file, don't forget to click Plugins » NppOpenAI » Load Config to apply the changes."), TEXT("NppOpenAI: Instructions"), MB_ICONINFORMATION);
+}
 
 /*** HELPER FUNCTIONS ***/
 
+// Toggle "Keep my question" menu item
+void keepQuestionToggler()
+{
+	isKeepQuestion = !isKeepQuestion;
+	::CheckMenuItem(::GetMenu(nppData._nppHandle), funcItem[6]._cmdID, MF_BYCOMMAND | (isKeepQuestion ? MF_CHECKED : MF_UNCHECKED));
+}
 
 // Convert std::wstring to std::string
 std::string to_utf8(std::wstring wide_string)
@@ -508,25 +542,36 @@ void replaceSelected(HWND curScintilla, std::string responseText)
 
 	// Update response text
 	responseText.erase(0, responseText.find_first_not_of("\n"));
-	if (isKeepQuestion)
-	{
-		responseText = to_utf8(selectedText) + "\n\n" + responseText;
-	}
 
 	// Update line endings
+	std::string selectedAndResponseEOLs = "\n\n";
 	switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
 	{
 	case SC_EOL_CRLF: // 0
 		responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
+		selectedAndResponseEOLs = "\r\n\r\n";
 		break;
 	case SC_EOL_CR: // 1
 		responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
+		selectedAndResponseEOLs = "\r\r";
 		break;
+	}
+	if (isKeepQuestion)
+	{
+		responseText = to_utf8(selectedText) + selectedAndResponseEOLs + responseText;
 	}
 	char* tmpResponseText = &responseText[0];
 
 	// Replace selection with OpenAI response (including original question -- optional)
 	::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
+}
+
+// Error message when the instructions (aka. assinstant) file is unavailable
+void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption)
+{
+	const size_t errorMessageSize = 256 + MAX_PATH;
+	_tcscat_s(errorMessage, errorMessageSize, instructionsFilePath);
+	::MessageBox(nppData._nppHandle, errorMessage, errorCaption, MB_ICONERROR);
 }
 
 // About
