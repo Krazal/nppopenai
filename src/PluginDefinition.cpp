@@ -203,6 +203,20 @@ void loadConfig()
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == The endpoints, like '/v1/chat/completions' will be added to `api_url` automatically. The trailing slash is optional in `api_url`. You should use a query string for custom URL, e.g. 'http://localhost/openai_test.php?endpoint=' ="), TEXT(""), iniFilePath);
 	}
 
+	// Chat preparations + create file for instructions (aka. system message) + 
+	if (::GetPrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), NULL, tbuffer2, 2, iniFilePath) == NULL)
+	{
+		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), TEXT("0"), iniFilePath);
+		if ((instructionsFile = _wfopen(instructionsFilePath, L"w, ccs=UNICODE")) != NULL)
+		{
+			fclose(instructionsFile);
+		}
+		else
+		{
+			instructionsFileError(TEXT("The instructions (system message) file could not be created:\n\n"), TEXT("NppOpenAI: unavailable instructions file"));
+		}
+	}
+
 	// Get instructions (aka. system message) file
 	if ((instructionsFile = _wfopen(instructionsFilePath, L"r, ccs=UNICODE")) != NULL)
 	{
