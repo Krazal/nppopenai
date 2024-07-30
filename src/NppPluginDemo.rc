@@ -1,52 +1,88 @@
-/*
- Copyright 2022 Don HO <don.h@free.fr>
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+/////////////////////////////////////////////////////////////////////////////
+// Hungarian (Hungary) resources
 
- This file is part of Notepad++ demo plugin.
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HUN)
+LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
+#pragma code_page(1250)
 
- Notepad++ demo plugin is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- GUP is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public License
- along with GUP.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-#include <windows.h>
-
-#define VERSION_VALUE "0.3.0.1\0"
-#define VERSION_DIGITALVALUE 0, 3, 0, 1
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION	VERSION_DIGITALVALUE
-PRODUCTVERSION	VERSION_DIGITALVALUE
-FILEFLAGSMASK	0x3fL
-FILEFLAGS 0
-FILEOS VOS_NT_WINDOWS32
-FILETYPE VFT_APP
-FILESUBTYPE VFT2_UNKNOWN
+ FILEVERSION 0,4,0,0
+ PRODUCTVERSION 0,4,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
 BEGIN
-	BLOCK	"VarFileInfo"
-	BEGIN
-		VALUE	"Translation",	0x409,	1200
-	END
-	BLOCK	"StringFileInfo"
-	BEGIN
-		BLOCK "040904b0"
-		BEGIN
-			VALUE	"CompanyName",	"Tarhely.Eu Kft.\0"
-			VALUE	"FileDescription",	"OpenAI plugin for Notepad++\0"
-			VALUE	"FileVersion",	VERSION_VALUE
-			VALUE	"InternalName",	"NppOpenAI.dll\0"
-			VALUE	"LegalCopyright",	"Copyright 2023-2024 by Richard Stockinger\0"
-			VALUE	"OriginalFilename",	"NppOpenAI.dll\0"
-			VALUE	"ProductName",	"NppOpenAI\0"
-			VALUE	"ProductVersion",	VERSION_VALUE
-		END
-	END
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Tarhely.Eu Kft."
+            VALUE "FileDescription", "OpenAI plugin for Notepad++"
+            VALUE "FileVersion", "0.4.0.0"
+            VALUE "InternalName", "NppOpenAI.dll"
+            VALUE "LegalCopyright", "Copyright 2023 by Richard Stockinger"
+            VALUE "OriginalFilename", "NppOpenAI.dll"
+            VALUE "ProductName", "NppOpenAI"
+            VALUE "ProductVersion", "0.4.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
 END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Hungarian (Hungary) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

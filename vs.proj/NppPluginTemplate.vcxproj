@@ -27,27 +27,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\DockingFeature\ChatSettingsDlg.h" />
+    <ClInclude Include="..\src\DockingFeature\chatSettingsResource.h" />
     <ClInclude Include="..\src\DockingFeature\Docking.h" />
     <ClInclude Include="..\src\DockingFeature\DockingDlgInterface.h" />
     <ClInclude Include="..\src\DockingFeature\dockingResource.h" />
     <ClInclude Include="..\src\DockingFeature\LoaderDlg.h" />
     <ClInclude Include="..\src\DockingFeature\loaderResource.h" />
+    <ClInclude Include="..\src\DockingFeature\resource.h" />
     <ClInclude Include="..\src\DockingFeature\StaticDialog.h" />
     <ClInclude Include="..\src\DockingFeature\Window.h" />
     <ClInclude Include="..\src\menuCmdID.h" />
     <ClInclude Include="..\src\Notepad_plus_msgs.h" />
     <ClInclude Include="..\src\PluginDefinition.h" />
     <ClInclude Include="..\src\PluginInterface.h" />
+    <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\Scintilla.h" />
     <ClInclude Include="..\src\Sci_Position.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\DockingFeature\ChatSettingsDlg.cpp" />
     <ClCompile Include="..\src\DockingFeature\LoaderDlg.cpp" />
     <ClCompile Include="..\src\DockingFeature\StaticDialog.cpp" />
     <ClCompile Include="..\src\NppPluginDemo.cpp" />
     <ClCompile Include="..\src\PluginDefinition.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="..\src\DockingFeature\ChatSettingsDlg.rc" />
     <ResourceCompile Include="..\src\DockingFeature\LoaderDlg.rc" />
     <ResourceCompile Include="..\src\NppPluginDemo.rc" />
   </ItemGroup>
@@ -146,7 +152,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -166,7 +172,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -188,7 +194,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -209,7 +215,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -238,7 +244,7 @@ powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(PlatformTarget)\*
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
@@ -267,7 +273,7 @@ powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(PlatformTarget)\*
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_WINDOWS;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>

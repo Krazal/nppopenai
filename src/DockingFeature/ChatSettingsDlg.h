@@ -15,39 +15,35 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef PLUGINNPPOPENAI_LOADER_DLG_H
-#define PLUGINNPPOPENAI_LOADER_DLG_H
+#ifndef PLUGINNPPOPENAI_CHATSETTINGS_DLG_H
+#define PLUGINNPPOPENAI_CHATSETTINGS_DLG_H
 
-/* DEL:
-// Marquee for the progress bar -- see more: `LoaderDlg::create()`
-#define PBS_MARQUEE  0x08
-#define PBM_SETMARQUEE WM_USER + 10 
+/*
+// Instead of `#include <commctrl.h>` we can define the required constants only!
+#define UDM_SETRANGE WM_USER + 101
+#define UDM_SETBASE  WM_USER + 109
+#define UDM_SETBUDDY WM_USER + 105
+#define UD_MAXVAL    0x7fff // 32767 (more than enough)
+// #define UD_MINVAL (-UD_MAXVAL) // Not required
 */
 
 #include "DockingDlgInterface.h"
-#include "loaderResource.h"
+#include "chatSettingsResource.h"
+#include <windowsx.h>
 #include <commctrl.h>
 
-class LoaderDlg : public StaticDialog
+class ChatSettingsDlg : public StaticDialog
 {
 public:
-	LoaderDlg() = default;
+	ChatSettingsDlg() : StaticDialog() {};
 
-	// Create a chat settings dialog for `isChat` and `chatLimit` settings
+	void doDialog(bool isRTL = false);
+	bool chatSetting_isChat;
+	int chatSetting_chatLimit;
+
+	// Create a chat settings MODAL dialog to enable/disable OpenAI chat and set its limit
 	virtual void create(int dialogID, bool isRTL = false, bool msgDestParent = true) {
 		StaticDialog::create(dialogID, isRTL, msgDestParent);
-
-		// Set progress bar to 'indeterminate' (marquee)
-		HWND progressBar = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS); // See more: `LoaderDlg.rc`
-		::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20); // <-- 20ms seems good (1: too fast; 50: too slow)
-	};
-
-	// Create + show a loader dialog
-	void doDialog(bool isRTL = false) {
-		if (!isCreated())
-			// create(IDD_PLUGINNPPOPENAI, isRTL);
-			create(IDD_PLUGINNPPOPENAI_LOADING, isRTL);
-		display();
 	};
 
 	// Toggle loader dialog visibility
@@ -57,8 +53,12 @@ public:
 
 
 protected:
+	bool enableDisable_isChatChecked;
+	static INT_PTR CALLBACK StaticDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+	void updateDialog();
+	void enableDisableDlgItems(bool forceUpdate = false);
 };
 
 
-#endif // PLUGINNPPOPENAI_LOADER_DLG_H
+#endif // PLUGINNPPOPENAI_CHATSETTINGS_DLG_H
