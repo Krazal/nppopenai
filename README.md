@@ -30,6 +30,11 @@ After editing and saving `NppOpenAI.ini` and/or `NppOpenAI_instructions`, please
 
 The chat can even be used in conjunction with the “instructions”. However, the chat history to be displayed is not (yet) available.
 
+Have a question?
+----------------
+
+If you experience an error or are interested in suggestions, visit the [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ)!
+
 Additional information
 ----------------------
 

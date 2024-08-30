@@ -20,7 +20,7 @@
 #define CURL_STATICLIB
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.4.0.0"
+#define NPPOPENAI_VERSION "0.4.0.1"
 
 //
 // All difinitions of plugin interface
