@@ -20,7 +20,6 @@
 extern FuncItem funcItem[nbFunc];
 extern NppData nppData;
 
-
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID /*lpReserved*/)
 {
 	try {
@@ -70,6 +69,13 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode)
 {
 	switch (notifyCode->nmhdr.code) 
 	{
+
+		case NPPN_TBMODIFICATION:
+		{
+			updateToolbarIcons();
+		}
+		break;
+
 		case NPPN_SHUTDOWN:
 		{
 			commandMenuCleanUp();

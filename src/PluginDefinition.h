@@ -19,15 +19,23 @@
 #define PLUGINDEFINITION_H
 #define CURL_STATICLIB
 
-// Plugin version info
-#define NPPOPENAI_VERSION "0.4.0.1"
-
 //
-// All difinitions of plugin interface
+// All definitions of plugin interface
 //
 #include "PluginInterface.h"
 #include "DockingFeature/LoaderDlg.h"
 #include <string>
+
+// Plugin version info
+#define NPPOPENAI_VERSION "0.4.1.0"
+
+// Plugin toolbar icons
+#define IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT 101
+#define IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT 102
+#define IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT_DM 103
+// #define IDB_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT 104
+// #define IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT 105
+// #define IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT_DM 106
 
 //-------------------------------------//
 //-- STEP 1. DEFINE YOUR PLUGIN NAME --//
@@ -58,9 +66,10 @@ void pluginInit(HANDLE hModule);
 void pluginCleanUp();
 
 //
-//Initialization of your plugin commands
+//Initialization of your plugin commands + toolbar icons
 //
 void commandMenuInit();
+void updateToolbarIcons();
 
 //
 //Clean up your plugin commands allocation (if any)

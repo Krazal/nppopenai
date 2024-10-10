@@ -39,6 +39,7 @@
     <ClInclude Include="..\src\DockingFeature\Window.h" />
     <ClInclude Include="..\src\menuCmdID.h" />
     <ClInclude Include="..\src\Notepad_plus_msgs.h" />
+    <ClInclude Include="..\src\NppPluginDemo.h" />
     <ClInclude Include="..\src\PluginDefinition.h" />
     <ClInclude Include="..\src\PluginInterface.h" />
     <ClInclude Include="..\src\resource.h" />
@@ -56,6 +57,7 @@
     <ResourceCompile Include="..\src\DockingFeature\ChatSettingsDlg.rc" />
     <ResourceCompile Include="..\src\DockingFeature\LoaderDlg.rc" />
     <ResourceCompile Include="..\src\NppPluginDemo.rc" />
+    <ResourceCompile Include="..\src\PluginDefinition.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9D04DBD5-E12E-44E0-A683-6F43F21D533B}</ProjectGuid>

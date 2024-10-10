@@ -18,12 +18,6 @@
 #ifndef PLUGINNPPOPENAI_LOADER_DLG_H
 #define PLUGINNPPOPENAI_LOADER_DLG_H
 
-/* DEL:
-// Marquee for the progress bar -- see more: `LoaderDlg::create()`
-#define PBS_MARQUEE  0x08
-#define PBM_SETMARQUEE WM_USER + 10 
-*/
-
 #include "DockingDlgInterface.h"
 #include "loaderResource.h"
 #include <commctrl.h>

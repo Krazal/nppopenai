@@ -69,7 +69,6 @@ std::vector<std::wstring> chatHistory        = {};
 // Collect selected text by Scintilla here
 TCHAR selectedText[9999];
 
-
 //
 // Initialize your plugin data here
 // It will be called while plugin loading
@@ -146,18 +145,35 @@ void commandMenuInit()
 	setCommand(4, TEXT("&Load Config"), loadConfig, NULL, false);
 	setCommand(5, TEXT("---"), NULL, NULL, false);
 	setCommand(6, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
-	if (!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0)
-	{
-		setCommand(7, TEXT("&Chat: off"), openChatSettingsDlg, NULL, false);
-	}
-	else
-	{
-		char chatLimitText[20];
-		sprintf(chatLimitText, "&Chat limit: %d", _chatSettingsDlg.chatSetting_chatLimit);
-		setCommand(7, myMultiByteToWideChar(chatLimitText), openChatSettingsDlg, NULL, false);
-	}
+	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by `updateToolbarIcons()` » `updateChatSettings()`
 	setCommand(8, TEXT("---"), NULL, NULL, false);
 	setCommand(9, TEXT("&About"), openAboutDlg, NULL, false);
+}
+
+// Add/update toolbar icons
+void updateToolbarIcons()
+{
+
+	// Prepare icons to open Chat Settings
+	int hToolbarBmp = IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT;
+	int hToolbarIcon = IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT;
+	int hToolbarIconDarkMode = IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT_DM;
+	/* // TODO: update toolbar icons on-the-fly (turning chat on/off or reaching chat limit)
+	if (!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0)
+	{
+		hToolbarBmp = IDB_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT;
+		hToolbarIcon = IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT;
+		hToolbarIconDarkMode = IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT_DM;
+	}
+	// */
+
+	// Send Chat Settings icons to Notepad++
+	toolbarIconsWithDarkMode chatSettingsIcons;
+	chatSettingsIcons.hToolbarBmp = ::LoadBitmap((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarBmp));
+	chatSettingsIcons.hToolbarIcon = ::LoadIcon((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarIcon));
+	chatSettingsIcons.hToolbarIconDarkMode = ::LoadIcon((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarIconDarkMode));
+	::SendMessage(nppData._nppHandle, NPPM_ADDTOOLBARICON_FORDARKMODE, funcItem[7]._cmdID, (LPARAM)&chatSettingsIcons); // Open Chat Settings
+	updateChatSettings();
 }
 
 //
@@ -337,7 +353,7 @@ void askChatGPT()
 		&& isEditable
 		&& selend > selstart
 		&& sellength < 2048
-		&& ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTWORD, 2048, (LPARAM)selectedText)
+		&& ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTWORD, 2048, (LPARAM)selectedText) // `curScintilla` is NOK as a handle!
 		)
 	{
 
@@ -730,23 +746,6 @@ void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption)
 	_tcscat_s(errorMessage, errorMessageSize, instructionsFilePath);
 	::MessageBox(nppData._nppHandle, errorMessage, errorCaption, MB_ICONERROR);
 }
-
-/* DEL!
-// Set/update NppOpenAI chat menu item
-void setChatMenuItem()
-{
-	if (!isChat)
-	{
-		setCommand(7, TEXT("&Chat: off"), openAboutDlg, NULL, false);
-	}
-	else
-	{
-		char chatLimitText[32];
-		sprintf(chatLimitText, "&Chat limit: %d", chatLimit);
-		setCommand(7, myMultiByteToWideChar(chatLimitText), openAboutDlg, NULL, false);
-	}
-}
-*/
 
 // Convert std::wstring to std::string
 std::string toUTF8(std::wstring wide_string)
