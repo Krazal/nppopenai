@@ -490,6 +490,8 @@ void askChatGPT()
 
 						// Get the appropriate response text
 						std::string responseText;
+						JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
+						/* DEPRECATED!
 						if (toUTF8(configAPIValue_model).rfind("gpt-", 0) == 0)
 						{
 							JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
@@ -498,6 +500,7 @@ void askChatGPT()
 						{
 							JSONResponse["choices"][0]["text"].get_to(responseText);
 						}
+						// */
 
 						// Replace selected text with response in the main Notepad++ window
 						replaceSelected(curScintilla, responseText);
