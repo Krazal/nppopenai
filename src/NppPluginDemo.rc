@@ -16,8 +16,8 @@ LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,4,1,0
- PRODUCTVERSION 0,4,1,0
+ FILEVERSION 0,4,1,1
+ PRODUCTVERSION 0,4,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -34,12 +34,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Tarhely.Eu Kft."
             VALUE "FileDescription", "OpenAI plugin for Notepad++"
-            VALUE "FileVersion", "0.4.1.0"
+            VALUE "FileVersion", "0.4.1.1"
             VALUE "InternalName", "NppOpenAI.dll"
             VALUE "LegalCopyright", "Copyright 2024 by Richard Stockinger"
             VALUE "OriginalFilename", "NppOpenAI.dll"
             VALUE "ProductName", "NppOpenAI"
-            VALUE "ProductVersion", "0.4.1.0"
+            VALUE "ProductVersion", "0.4.1.1"
         END
     END
     BLOCK "VarFileInfo"

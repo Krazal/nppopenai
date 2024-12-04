@@ -359,11 +359,11 @@ void askChatGPT()
 
 		// Data to post via cURL
 		json postData = {
-			{toUTF8(TEXT("model")),             toUTF8(configAPIValue_model)},
-			{toUTF8(TEXT("temperature")),       std::stod(configAPIValue_temperature)},
-			{toUTF8(TEXT("top_p")),             std::stod(configAPIValue_topP)},
-			{toUTF8(TEXT("frequency_penalty")), std::stod(configAPIValue_frequencyPenalty)},
-			{toUTF8(TEXT("presence_penalty")),  std::stod(configAPIValue_presencePenalty)}
+			{"model",             toUTF8(configAPIValue_model)},
+			{"temperature",       std::stod(configAPIValue_temperature)},
+			{"top_p",             std::stod(configAPIValue_topP)},
+			{"frequency_penalty", std::stod(configAPIValue_frequencyPenalty)},
+			{"presence_penalty",  std::stod(configAPIValue_presencePenalty)}
 		};
 
 		// Add `max_tokens` setting
@@ -375,68 +375,74 @@ void askChatGPT()
 		// Update postData + OpenAI URL
 		bool isReady2CallOpenAI = true;
 		std::string OpenAIURL = toUTF8(configAPIValue_baseURL).erase(toUTF8(configAPIValue_baseURL).find_last_not_of("/") + 1);
+		/*
 		if (toUTF8(configAPIValue_model).rfind("gpt-", 0) == 0) // Newer models (2023–): gpt-4, gpt-3.5-turbo. Newer model spanshots (like gpt-3.5-turbo-0613) are supported, too
 		{
-			int msgCounter = 0;
-			if (configAPIValue_instructions != TEXT(""))
-			{
-				postData["messages"][0] = {
-					{"role",    "system"},
-					{"content", toUTF8(configAPIValue_instructions)}
-				};
-				msgCounter++;
-			}
+		// */
 
-			// Add chat history
-			if (_chatSettingsDlg.chatSetting_isChat && _chatSettingsDlg.chatSetting_chatLimit > 0 && chatHistory.size() > 0)
-			{
-
-				// Chat limit reached: should we start a new conversation or cancel OpenAI call?
-				if (static_cast<int>(chatHistory.size()) == _chatSettingsDlg.chatSetting_chatLimit * 2)
-				{
-					char chatNewChatText[100];
-					sprintf(chatNewChatText, "Chat limit reached: %d\n\nDo you want to start A WHOLE NEW conversation?", _chatSettingsDlg.chatSetting_chatLimit);
-					const int result = ::MessageBox(nppData._nppHandle, myMultiByteToWideChar(chatNewChatText), TEXT("OpenAI: Chat limit!"), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2);
-					if (result == IDYES)
-					{
-						chatHistory = {};
-					}
-					else
-					{
-						isReady2CallOpenAI = false;
-					}
-				}
-
-				// Collect chat history messages
-				if (chatHistory.size() > 0)
-				{
-					for (size_t i = 0; i < chatHistory.size(); i++)
-					{
-						postData["messages"][msgCounter] = {
-							{"role",    (i % 2 == 0) ? "user" : "assistant"}, // The even (and zero) elements were our questions, the odd elements were the OpenAI's answers
-							{"content", toUTF8(chatHistory[i])} // chatHistory DOESN'T contain the instructions (system message)!
-						};
-						msgCounter++;
-					}
-				}
-			}
-			else if ((!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0) && chatHistory.size() > 0) // Reset chat history here
-			{
-				chatHistory = {};
-			}
-
-			// Add the current question (selected text)
-			postData["messages"][msgCounter] = {
-				{"role",    "user"},
-				{"content", toUTF8(selectedText)}
+		int msgCounter = 0;
+		if (configAPIValue_instructions != TEXT(""))
+		{
+			postData["messages"][0] = {
+				{"role",    "system"},
+				{"content", toUTF8(configAPIValue_instructions)}
 			};
-			OpenAIURL += "/v1/chat/completions";
+			msgCounter++;
+		}
+
+		// Add chat history
+		if (_chatSettingsDlg.chatSetting_isChat && _chatSettingsDlg.chatSetting_chatLimit > 0 && chatHistory.size() > 0)
+		{
+
+			// Chat limit reached: should we start a new conversation or cancel OpenAI call?
+			if (static_cast<int>(chatHistory.size()) == _chatSettingsDlg.chatSetting_chatLimit * 2)
+			{
+				char chatNewChatText[100];
+				sprintf(chatNewChatText, "Chat limit reached: %d\n\nDo you want to start A WHOLE NEW conversation?", _chatSettingsDlg.chatSetting_chatLimit);
+				const int result = ::MessageBox(nppData._nppHandle, myMultiByteToWideChar(chatNewChatText), TEXT("OpenAI: Chat limit!"), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2);
+				if (result == IDYES)
+				{
+					chatHistory = {};
+				}
+				else
+				{
+					isReady2CallOpenAI = false;
+				}
+			}
+
+			// Collect chat history messages
+			if (chatHistory.size() > 0)
+			{
+				for (size_t i = 0; i < chatHistory.size(); i++)
+				{
+					postData["messages"][msgCounter] = {
+						{"role",    (i % 2 == 0) ? "user" : "assistant"}, // The even (and zero) elements were our questions, the odd elements were the OpenAI's answers
+						{"content", toUTF8(chatHistory[i])} // chatHistory DOESN'T contain the instructions (system message)!
+					};
+					msgCounter++;
+				}
+			}
+		}
+		else if ((!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0) && chatHistory.size() > 0) // Reset chat history here
+		{
+			chatHistory = {};
+		}
+
+		// Add the current question (selected text)
+		postData["messages"][msgCounter] = {
+			{"role",    "user"},
+			{"content", toUTF8(selectedText)}
+		};
+		OpenAIURL += "/v1/chat/completions";
+
+		/* Older models (2020–2022) are NO longer supported: text-davinci-003, text-davinci-002, davinci, curie, babbage, ada (2024-12-04)
 		}
 		else // Older models (2020–2022): text-davinci-003, text-davinci-002, davinci, curie, babbage, ada
 		{
 			postData["prompt"] = toUTF8(selectedText);
 			OpenAIURL += "/v1/completions";
 		}
+		*/
 
 		// Ready to call OpenAI
 		if (isReady2CallOpenAI)
@@ -466,8 +472,11 @@ void askChatGPT()
 					return;
 				}
 
-				/* // TEST: RESPONSE
-				::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONBuffer.c_str());
+				/* // TEST: URL/RESPONSE
+				// ::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONBuffer.c_str());
+				TCHAR tmpOpenAIURL[512] = { 0, };
+				std::copy(OpenAIURL.begin(), OpenAIURL.end(), tmpOpenAIURL);
+				::MessageBox(nppData._nppHandle, tmpOpenAIURL, TEXT("OpenAI: URL"), MB_ICONWARNING);
 				// */
 
 				// Parse response
@@ -680,7 +689,7 @@ bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSO
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, JSONRequest.c_str());
-	curl_easy_setopt(curl, CURLOPT_POST, 1);
+	curl_easy_setopt(curl, CURLOPT_POST, 1L);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &JSONResponse);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIcURLCallback); // Send all data to this function
 
