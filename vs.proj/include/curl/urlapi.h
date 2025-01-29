@@ -63,6 +63,7 @@ typedef enum {
   CURLUE_BAD_SLASHES,         /* 28 */
   CURLUE_BAD_USER,            /* 29 */
   CURLUE_LACKS_IDN,           /* 30 */
+  CURLUE_TOO_LARGE,           /* 31 */
   CURLUE_LAST
 } CURLUcode;
 
@@ -96,7 +97,12 @@ typedef enum {
 #define CURLU_NO_AUTHORITY (1<<10)      /* Allow empty authority when the
                                            scheme is unknown. */
 #define CURLU_ALLOW_SPACE (1<<11)       /* Allow spaces in the URL */
-#define CURLU_PUNYCODE (1<<12)          /* get the host name in pynycode */
+#define CURLU_PUNYCODE (1<<12)          /* get the hostname in punycode */
+#define CURLU_PUNY2IDN (1<<13)          /* punycode => IDN conversion */
+#define CURLU_GET_EMPTY (1<<14)         /* allow empty queries and fragments
+                                           when extracting the URL or the
+                                           components */
+#define CURLU_NO_GUESS_SCHEME (1<<15)   /* for get, do not accept a guess */
 
 typedef struct Curl_URL CURLU;
 
@@ -117,14 +123,14 @@ CURL_EXTERN void curl_url_cleanup(CURLU *handle);
  * curl_url_dup() duplicates a CURLU handle and returns a new copy. The new
  * handle must also be freed with curl_url_cleanup().
  */
-CURL_EXTERN CURLU *curl_url_dup(CURLU *in);
+CURL_EXTERN CURLU *curl_url_dup(const CURLU *in);
 
 /*
  * curl_url_get() extracts a specific part of the URL from a CURLU
  * handle. Returns error code. The returned pointer MUST be freed with
  * curl_free() afterwards.
  */
-CURL_EXTERN CURLUcode curl_url_get(CURLU *handle, CURLUPart what,
+CURL_EXTERN CURLUcode curl_url_get(const CURLU *handle, CURLUPart what,
                                    char **part, unsigned int flags);
 
 /*
@@ -137,7 +143,7 @@ CURL_EXTERN CURLUcode curl_url_set(CURLU *handle, CURLUPart what,
 
 /*
  * curl_url_strerror() turns a CURLUcode value into the equivalent human
- * readable error string.  This is useful for printing meaningful error
+ * readable error string. This is useful for printing meaningful error
  * messages.
  */
 CURL_EXTERN const char *curl_url_strerror(CURLUcode);

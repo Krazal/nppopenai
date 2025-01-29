@@ -6,6 +6,11 @@ How it works?
 
 Simply select your text in Notepad++, press `Ctrl + Shift + O`, and you'll see the AI generated response in seconds. (Additional settings required.) Two examples: "Please create a Fibonacci function in PHP"; "Mi az árvíztűrő tükörfúrógép?" (Hungarian Unicode test). This plugin requires an active internet connection and an OpenAI registration / API key (handles it confidentially).
 
+Can I install (update) it manually?
+-----------------------------------
+
+Sure! If the latest release here in GitHub is newer than the NppOpenAI plugin in the Plugin Manager, [follow this guide](https://github.com/Krazal/nppopenai/wiki/FAQ#question-ive-an-old-buggy-nppopenai-release-how-should-i-update) to install it manually.
+
 How to configure?
 -----------------
 

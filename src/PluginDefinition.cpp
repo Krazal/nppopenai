@@ -56,6 +56,7 @@ NppData nppData;
 // Config file related vars
 std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
 std::wstring configAPIValue_baseURL          = TEXT("https://api.openai.com/"); // Trailing '/' will be erased (if any)
+std::wstring configAPIValue_proxyURL         = TEXT("0"); // 0: don't use proxy. Trailing '/' will be erased (if any)
 std::wstring configAPIValue_model            = TEXT("gpt-4o-mini"); // Recommended default model. NOTE: You can use use "gpt-3.5-turbo", "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
 std::wstring configAPIValue_instructions     = TEXT(""); // System message ("instuctions") for the OpenAI API e.g. "Translate the given text into English." or "Create a PHP function based on the received text.". Leave empty to skip.
 std::wstring configAPIValue_temperature      = TEXT("0.7");
@@ -116,7 +117,7 @@ void commandMenuInit()
 	PathCombine(instructionsFilePath, configDirPath, TEXT("NppOpenAI_instructions"));
 
 	// Load config file content
-	loadConfig();
+	loadConfig(true);
 
 
     //--------------------------------------------//
@@ -142,7 +143,7 @@ void commandMenuInit()
 	setCommand(1, TEXT("---"), NULL, NULL, false);
 	setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
 	setCommand(3, TEXT("Edit &Instructions"), openInsturctions, NULL, false);
-	setCommand(4, TEXT("&Load Config"), loadConfig, NULL, false);
+	setCommand(4, TEXT("&Load Config"), loadConfigWithoutPluginSettings, NULL, false);
 	setCommand(5, TEXT("---"), NULL, NULL, false);
 	setCommand(6, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
 	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by `updateToolbarIcons()` » `updateChatSettings()`
@@ -212,8 +213,13 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //-- STEP 4. DEFINE YOUR ASSOCIATED FUNCTIONS --//
 //----------------------------------------------//
 
+// Wrapper function to match the PFUNCPLUGINCMD signature
+void loadConfigWithoutPluginSettings() {
+	loadConfig(false);
+}
+
 // Load (and create if not found) config file
-void loadConfig()
+void loadConfig(bool loadPluginSettings)
 {
 	wchar_t tbuffer2[256];
 	FILE* instructionsFile;
@@ -266,12 +272,19 @@ void loadConfig()
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Use `instructions` to set a system message for the OpenAI API e.g. 'Translate the given message into English.' or 'Create a PHP function based on the received text.' Optional, leave empty to skip. ="), TEXT(""), iniFilePath);
 	}
 
+	// Set up proxy settings (v0.4.2)
+	if (::GetPrivateProfileString(TEXT("API"), TEXT("proxy_url"), NULL, tbuffer2, 256, iniFilePath) == NULL)
+	{
+		::WritePrivateProfileString(TEXT("API"), TEXT("proxy_url"), configAPIValue_proxyURL.c_str(), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Enter a `proxy_url` to use proxy like 'http://127.0.0.1:80'. Optional, enter 0 (zero) to skip. ="), TEXT(""), iniFilePath);
+	}
+
 	// Get instructions (aka. system message) file
 	if ((instructionsFile = _wfopen(instructionsFilePath, L"r, ccs=UNICODE")) != NULL)
 	{
 		wchar_t instructionsBuffer[9999];
 		configAPIValue_instructions = TEXT("");
-		while (fgetws(instructionsBuffer, 9999, instructionsFile) != NULL)
+		while (fgetws(instructionsBuffer, 9999, instructionsFile))
 		{
 			configAPIValue_instructions += instructionsBuffer;
 		}
@@ -286,14 +299,17 @@ void loadConfig()
 	::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), NULL, tbuffer2, 256, iniFilePath); // sk-abc123...
 	configAPIValue_secretKey = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath); // sk-abc123...
+	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath); // https://...
 	configAPIValue_baseURL = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // text-davinci-003, ...
+	::GetPrivateProfileString(TEXT("API"), TEXT("proxy_url"), NULL, tbuffer2, 256, iniFilePath); // https://...
+	configAPIValue_proxyURL = std::wstring(tbuffer2);
+
+	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // gpt-4o-mini, ...
 	if (std::wstring(tbuffer2) == TEXT("gpt-4")) // Sorry, this was a bad config in v0.3.0.1 ^^'
 	{
 		::WritePrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), iniFilePath);
-		::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // text-davinci-003, ...
+		::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // gpt-4o-mini, ...
 	}
 	configAPIValue_model = std::wstring(tbuffer2);
 
@@ -313,22 +329,23 @@ void loadConfig()
 	configAPIValue_presencePenalty = std::wstring(tbuffer2);
 
 	// Get Plugin config/settings
-	isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 1, iniFilePath) != 0);
-	_chatSettingsDlg.chatSetting_isChat = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("is_chat"), 0, iniFilePath) != 0);
-	// isChat = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("is_chat"), 0, iniFilePath) != 0);
-	// int tmpChatLimit = ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimit, iniFilePath);
-	int tmpChatLimit = ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("chat_limit"), _chatSettingsDlg.chatSetting_chatLimit, iniFilePath);
-	// chatLimit = (tmpChatLimit <= 0)
-	_chatSettingsDlg.chatSetting_chatLimit = (tmpChatLimit <= 0)
-		? 1 // Chat limit: min. value
-		: ((tmpChatLimit > UD_MAXVAL)
-			? UD_MAXVAL // Chat limit: max. value
-			: tmpChatLimit);
-
-	// Update chat menu item text (if already initialized)
-	if (funcItem[7]._pFunc)
+	// Do NOT load "PLUGIN" section when clicking the Load Config menu item (may cause misconfiguration)
+	if (loadPluginSettings)
 	{
-		updateChatSettings();
+		isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 1, iniFilePath) != 0);
+		_chatSettingsDlg.chatSetting_isChat = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("is_chat"), 0, iniFilePath) != 0);
+		int tmpChatLimit = ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("chat_limit"), _chatSettingsDlg.chatSetting_chatLimit, iniFilePath);
+		_chatSettingsDlg.chatSetting_chatLimit = (tmpChatLimit <= 0)
+			? 1 // Chat limit: min. value
+			: ((tmpChatLimit > UD_MAXVAL)
+				? UD_MAXVAL // Chat limit: max. value
+				: tmpChatLimit);
+
+		// Update chat menu item text (if already initialized)
+		if (funcItem[7]._pFunc)
+		{
+			updateChatSettings();
+		}
 	}
 }
 
@@ -375,11 +392,9 @@ void askChatGPT()
 		// Update postData + OpenAI URL
 		bool isReady2CallOpenAI = true;
 		std::string OpenAIURL = toUTF8(configAPIValue_baseURL).erase(toUTF8(configAPIValue_baseURL).find_last_not_of("/") + 1);
-		/*
-		if (toUTF8(configAPIValue_model).rfind("gpt-", 0) == 0) // Newer models (2023–): gpt-4, gpt-3.5-turbo. Newer model spanshots (like gpt-3.5-turbo-0613) are supported, too
-		{
-		// */
+		std::string ProxyURL  = toUTF8(configAPIValue_proxyURL).erase(toUTF8(configAPIValue_proxyURL).find_last_not_of("/") + 1);
 
+		// Add system message (instructions)
 		int msgCounter = 0;
 		if (configAPIValue_instructions != TEXT(""))
 		{
@@ -429,20 +444,12 @@ void askChatGPT()
 		}
 
 		// Add the current question (selected text)
+		// N2K: Older models (2020–2022) are NO longer supported (text-davinci-003, text-davinci-002, davinci, curie, babbage, ada) -- 2024-12-04
 		postData["messages"][msgCounter] = {
 			{"role",    "user"},
 			{"content", toUTF8(selectedText)}
 		};
 		OpenAIURL += "/v1/chat/completions";
-
-		/* Older models (2020–2022) are NO longer supported: text-davinci-003, text-davinci-002, davinci, curie, babbage, ada (2024-12-04)
-		}
-		else // Older models (2020–2022): text-davinci-003, text-davinci-002, davinci, curie, babbage, ada
-		{
-			postData["prompt"] = toUTF8(selectedText);
-			OpenAIURL += "/v1/completions";
-		}
-		*/
 
 		// Ready to call OpenAI
 		if (isReady2CallOpenAI)
@@ -453,13 +460,13 @@ void askChatGPT()
 			::EnableWindow(nppData._nppHandle, FALSE);
 
 			// Prepare to start a new thread
-			auto curlLambda = [](std::string OpenAIURL, json postData, HWND curScintilla)
+			auto curlLambda = [](std::string OpenAIURL, std::string ProxyURL, json postData, HWND curScintilla)
 			{
 				std::string JSONRequest = postData.dump();
 
 				// Try to call OpenAI and store the results in `JSONBuffer`
 				std::string JSONBuffer;
-				bool isSuccessCall = callOpenAI(OpenAIURL, JSONRequest, JSONBuffer);
+				bool isSuccessCall = callOpenAI(OpenAIURL, ProxyURL, JSONRequest, JSONBuffer);
 
 				// Hide loader dialog (`destroy()` doesn't necessary), enable main window
 				_loaderDlg.display(false);
@@ -485,22 +492,16 @@ void askChatGPT()
 					json JSONResponse = json::parse(JSONBuffer);
 
 					// Handle JSON response
-					if (JSONResponse.contains("choices") && JSONResponse.contains("usage"))
+					if (JSONResponse.contains("choices")
+						&& JSONResponse["choices"].contains(0)
+						&& JSONResponse["choices"][0].contains("message")
+						&& JSONResponse["choices"][0]["message"].contains("content")
+						&& JSONResponse.contains("usage")
+					)
 					{
-
 						// Get the appropriate response text
 						std::string responseText;
 						JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
-						/* DEPRECATED!
-						if (toUTF8(configAPIValue_model).rfind("gpt-", 0) == 0)
-						{
-							JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
-						}
-						else
-						{
-							JSONResponse["choices"][0]["text"].get_to(responseText);
-						}
-						// */
 
 						// Replace selected text with response in the main Notepad++ window
 						replaceSelected(curScintilla, responseText);
@@ -535,9 +536,15 @@ void askChatGPT()
 						std::copy(errorResponse.begin(), errorResponse.end(), errorResponseWide);
 						::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
 					}
+					else if (JSONResponse.contains("choices")
+						&& JSONResponse["choices"].contains(0)
+						&& !JSONResponse["choices"][0].contains("message"))
+					{
+						::MessageBox(nppData._nppHandle, TEXT("The 'choices' in the response does not contain a 'message' key. Is it possible that you are trying to use a legacy OpenAI API?"), TEXT("OpenAI: Missing message"), MB_ICONEXCLAMATION);
+					}
 					else
 					{
-						::MessageBox(nppData._nppHandle, TEXT("Missing 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
+						::MessageBox(nppData._nppHandle, TEXT("Missing/empty 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
 					}
 				}
 				catch (json::parse_error& ex)
@@ -550,7 +557,7 @@ void askChatGPT()
 				}
 			};
 
-			std::thread curlThread(curlLambda, OpenAIURL, postData, curScintilla);
+			std::thread curlThread(curlLambda, OpenAIURL, ProxyURL, postData, curScintilla);
 			curlThread.detach();
 		}
 	}
@@ -655,7 +662,7 @@ This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
 
 
 // Call OpenAI via cURL
-bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSONResponse)
+bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string& JSONResponse)
 {
 
 	// Prepare cURL
@@ -686,6 +693,10 @@ bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSO
 
 	// cURL SetOpts
 	curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // E.g. "https://api.openai.com/v1/completions"
+	if (ProxyURL != "" && ProxyURL != "0")
+	{
+		curl_easy_setopt(curl, CURLOPT_PROXY, ProxyURL.c_str());
+	}
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
 	curl_easy_setopt(curl, CURLOPT_CAINFO, toUTF8(CACertFilePath).c_str());

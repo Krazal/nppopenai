@@ -27,7 +27,7 @@
 #include <string>
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.4.1.2"
+#define NPPOPENAI_VERSION "0.4.2.0"
 
 // Plugin toolbar icons
 #define IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT 101
@@ -85,7 +85,8 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //
 // Your plugin command functions
 //
-void loadConfig();
+void loadConfigWithoutPluginSettings();
+void loadConfig(bool loadPluginSettings);
 void askChatGPT();
 void openConfig();
 void openInsturctions();
@@ -95,7 +96,7 @@ void updateChatSettings(bool isWriteToFile = false);
 void openAboutDlg();
 
 /*** HELPER FUNCTIONS ***/
-bool callOpenAI(std::string OpenAIURL, std::string JSONRequest, std::string& JSONResponse);
+bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string& JSONResponse);
 static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void replaceSelected(HWND curScintilla, std::string responseText);
 void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption);
