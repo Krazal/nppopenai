@@ -493,7 +493,7 @@ void askChatGPT()
 
 					// Handle JSON response
 					if (JSONResponse.contains("choices")
-						&& JSONResponse["choices"].contains(0)
+						&& JSONResponse["choices"].is_array() && JSONResponse.count("choices") > 0
 						&& JSONResponse["choices"][0].contains("message")
 						&& JSONResponse["choices"][0]["message"].contains("content")
 						&& JSONResponse.contains("usage")
@@ -537,7 +537,7 @@ void askChatGPT()
 						::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
 					}
 					else if (JSONResponse.contains("choices")
-						&& JSONResponse["choices"].contains(0)
+						&& JSONResponse["choices"].is_array() && JSONResponse.count("choices") > 0
 						&& !JSONResponse["choices"][0].contains("message"))
 					{
 						::MessageBox(nppData._nppHandle, TEXT("The 'choices' in the response does not contain a 'message' key. Is it possible that you are trying to use a legacy OpenAI API?"), TEXT("OpenAI: Missing message"), MB_ICONEXCLAMATION);
