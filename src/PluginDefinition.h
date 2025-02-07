@@ -27,7 +27,7 @@
 #include <string>
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.4.2.1"
+#define NPPOPENAI_VERSION "0.4.2.2"
 
 // Plugin toolbar icons
 #define IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT 101

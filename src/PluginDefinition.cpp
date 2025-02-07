@@ -225,7 +225,7 @@ void loadConfig(bool loadPluginSettings)
 	FILE* instructionsFile;
 
 	// Set up a default plugin config (if necessary)
-	if (::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath) == NULL)
+	if (::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath) == NULL)
 	{
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; === PLEASE ENTER YOUR OPENAI SECRET API KEY BELOW =="), TEXT(""), iniFilePath);
 		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For faster results, you may use `gpt-4o-mini` model ="), TEXT(""), iniFilePath);
@@ -305,11 +305,11 @@ void loadConfig(bool loadPluginSettings)
 	::GetPrivateProfileString(TEXT("API"), TEXT("proxy_url"), NULL, tbuffer2, 256, iniFilePath); // https://...
 	configAPIValue_proxyURL = std::wstring(tbuffer2);
 
-	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // gpt-4o-mini, ...
+	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath); // gpt-4o-mini, ...
 	if (std::wstring(tbuffer2) == TEXT("gpt-4")) // Sorry, this was a bad config in v0.3.0.1 ^^'
 	{
 		::WritePrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), iniFilePath);
-		::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 32, iniFilePath); // gpt-4o-mini, ...
+		::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath); // gpt-4o-mini, ...
 	}
 	configAPIValue_model = std::wstring(tbuffer2);
 
