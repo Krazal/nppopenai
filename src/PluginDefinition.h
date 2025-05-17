@@ -1,19 +1,19 @@
-//this file is part of notepad++
-//Copyright (C)2022 Don HO <don.h@free.fr>
+// this file is part of notepad++
+// Copyright (C)2022 Don HO <don.h@free.fr>
 //
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either
-//version 2 of the License, or (at your option) any later version.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
 //
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-//You should have received a copy of the GNU General Public License
-//along with this program; if not, write to the Free Software
-//Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #ifndef PLUGINDEFINITION_H
 #define PLUGINDEFINITION_H
@@ -27,7 +27,10 @@
 #include <string>
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.4.2.2"
+#define NPPOPENAI_VERSION "0.5.2"
+#define NPPOPENAI_VERSION_MAJOR 0
+#define NPPOPENAI_VERSION_MINOR 5
+#define NPPOPENAI_VERSION_PATCH 2
 
 // Plugin toolbar icons
 #define IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT 101
@@ -52,6 +55,13 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("NppOpenAI");
 //
 const int nbFunc = 10;
 
+// Config vars: API
+extern std::wstring configAPIValue_secretKey;
+extern std::wstring configAPIValue_baseURL;
+extern std::wstring configAPIValue_proxyURL;
+
+// Debug mode flag
+extern bool debugMode;
 
 //
 // Initialization of your plugin data
@@ -66,21 +76,20 @@ void pluginInit(HANDLE hModule);
 void pluginCleanUp();
 
 //
-//Initialization of your plugin commands + toolbar icons
+// Initialization of your plugin commands + toolbar icons
 //
 void commandMenuInit();
 void updateToolbarIcons();
 
 //
-//Clean up your plugin commands allocation (if any)
+// Clean up your plugin commands allocation (if any)
 //
 void commandMenuCleanUp();
 
 //
-// Function which sets your command 
+// Function which sets your command
 //
 bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk = NULL, bool check0nInit = false);
-
 
 //
 // Your plugin command functions
@@ -96,12 +105,18 @@ void updateChatSettings(bool isWriteToFile = false);
 void openAboutDlg();
 
 /*** HELPER FUNCTIONS ***/
-bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string& JSONResponse);
+bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string &JSONResponse);
 static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void replaceSelected(HWND curScintilla, std::string responseText);
-void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption);
+void instructionsFileError(TCHAR *errorMessage, TCHAR *errorCaption);
 std::string toUTF8(std::wstring);
-TCHAR* myMultiByteToWideChar(char* fromChar);
+TCHAR *myMultiByteToWideChar(char *fromChar);
 
+/*** DEBUG FUNCTIONS ***/
+void toggleDebugMode();
+void debugText(const wchar_t *text);
+void debugTextBinary(const wchar_t *text);
+void debugTextCharByChar(const wchar_t *text);
+std::string hexDump(const char *data, size_t size);
 
-#endif //PLUGINDEFINITION_H
+#endif // PLUGINDEFINITION_H
