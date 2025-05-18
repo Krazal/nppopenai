@@ -84,9 +84,8 @@ $RECYCLE.BIN/
 *.d
 *.o
 
-# avoid committing the build directory
-.Bin
-.Bin/
 
-.bin64
-.bin64/
+# Ignore the bin64 folder (used for distributions)
+bin64/
+bin32/
+
