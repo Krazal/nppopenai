@@ -96,7 +96,5 @@ README_PRIVATE.md
 // exclude the vscode workspace settings
 .vscode/
 vs.proj/
-vs.proj
-.vscode
 
 
