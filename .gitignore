@@ -84,3 +84,9 @@ $RECYCLE.BIN/
 *.d
 *.o
 
+# avoid committing the build directory
+.Bin
+.Bin/
+
+.bin64
+.bin64/
