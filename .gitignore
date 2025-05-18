@@ -93,4 +93,10 @@ README_PRIVATE.md
 *.exp
 *.lib
 
+// exclude the vscode workspace settings
+.vscode/
+vs.proj/
+vs.proj
+
+
 
