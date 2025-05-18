@@ -32,6 +32,11 @@
 
 // For "async" cURL calls
 #include <thread>
+#include <fstream> // For file stream operations
+#include <cstdio>  // For FILE* operations in parseInstructionsFile
+
+#include <commctrl.h> // For TaskDialogIndirect
+#pragma comment(lib, "comctl32.lib")
 
 // Instead of `#include <commctrl.h>` we define the required constants only!
 #define UD_MAXVAL 0x7fff // 32767 (more than enough)
@@ -75,11 +80,117 @@ std::vector<std::wstring> chatHistory = {};
 static char selectedTextA[9999];
 static std::string lastSelection;
 
+// Data structure for multiple named system prompts
+struct Prompt
+{
+	std::wstring name;
+	std::wstring content;
+};
+
+// Parsed prompts and last-used index
+static std::vector<Prompt> g_prompts;
+static int g_lastUsedPromptIndex = -1;
+
+// Parse the instructions file into named Prompt entries
+static void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
+{
+	// Open Unicode file for reading wide characters
+	FILE *file = _wfopen(filePath, L"r, ccs=UNICODE");
+	if (!file)
+		return;
+
+	WCHAR buffer[4096];
+	std::wregex headerPattern(LR"(^\[Prompt:([^\]]+)\])");
+	std::wsmatch match;
+	Prompt current;
+	bool hasHeader = false;
+
+	while (fgetws(buffer, _countof(buffer), file))
+	{
+		std::wstring line(buffer);
+		// Trim trailing CR/LF
+		if (!line.empty())
+			line.erase(line.find_last_not_of(L"\r\n") + 1);
+
+		if (std::regex_match(line, match, headerPattern))
+		{
+			if (hasHeader)
+				prompts.push_back(current);
+			current = Prompt();
+			current.name = match[1].str();
+			current.content.clear();
+			hasHeader = true;
+		}
+		else if (hasHeader)
+		{
+			current.content += line + L"\n";
+		}
+		else
+		{
+			// No header yet: accumulate default prompt content
+			current.content += line + L"\n";
+		}
+	}
+	fclose(file);
+	// Push the last accumulated prompt
+	if (hasHeader || !current.content.empty())
+	{
+		if (!hasHeader)
+			current.name.clear();
+		prompts.push_back(current);
+	}
+}
+
+// Present a TaskDialog with buttons for each prompt name and return the chosen index, or -1 on cancel
+static int choosePrompt(HWND owner)
+{
+	size_t count = g_prompts.size();
+	// If only one or no prompts, no selection dialog needed
+	if (count <= 1)
+		return 0;
+
+	// Create persistent label storage for TaskDialog buttons
+	std::vector<std::wstring> buttonLabels(count);
+	std::vector<TASKDIALOG_BUTTON> buttons(count);
+	for (size_t i = 0; i < count; ++i)
+	{
+		buttons[i].nButtonID = 1000 + static_cast<int>(i);
+		// Label is either user-defined name or default placeholder
+		buttonLabels[i] = g_prompts[i].name.empty() ? L"(default)" : g_prompts[i].name;
+		buttons[i].pszButtonText = buttonLabels[i].c_str();
+	}
+
+	TASKDIALOGCONFIG config = {};
+	config.cbSize = sizeof(config);
+	config.hwndParent = owner;
+	config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
+	config.pszWindowTitle = L"NppOpenAI: Choose Prompt";
+	config.pszMainInstruction = L"Select a system prompt:";
+	config.cButtons = (UINT)count;
+	config.pButtons = buttons.data();
+	int defaultID = (g_lastUsedPromptIndex >= 0 && g_lastUsedPromptIndex < (int)count)
+						? 1000 + g_lastUsedPromptIndex
+						: 1000;
+	config.nDefaultButton = defaultID;
+
+	int pressedID = 0;
+	HRESULT hr = TaskDialogIndirect(&config, &pressedID, NULL, NULL);
+	if (FAILED(hr) || pressedID == 0)
+	{
+		return -1; // cancelled
+	}
+	return pressedID - 1000;
+}
+
 //
 // Initialize your plugin data here
 // It will be called while plugin loading
 void pluginInit(HANDLE hModule)
 {
+	// Initialize common controls for TaskDialog
+	INITCOMMONCONTROLSEX icex{sizeof(icex), ICC_STANDARD_CLASSES | ICC_WIN95_CLASSES};
+	InitCommonControlsEx(&icex);
+
 	_hModule = hModule;
 	_loaderDlg.init((HINSTANCE)_hModule, nppData._nppHandle);
 
@@ -273,7 +384,7 @@ void loadConfig(bool loadPluginSettings)
 	if (::GetPrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), NULL, tbuffer2, 2, iniFilePath) == NULL)
 	{
 		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), TEXT("10"), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Use `instructions` to set a system message for the OpenAI API e.g. 'Translate the given message into English.' or 'Create a PHP function based on the received text.' Optional, leave empty to skip. ="), TEXT(""), iniFilePath);
+		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Use `instructions` to set a system message for the OpenAI API e.g. 'Translate the received message into English.' or 'Create a PHP function based on the received text.' Optional, leave empty to skip. ="), TEXT(""), iniFilePath);
 	}
 
 	// Set up proxy settings (v0.4.2)
@@ -297,6 +408,22 @@ void loadConfig(bool loadPluginSettings)
 	else
 	{
 		instructionsFileError(TEXT("The instructions (system message) file was not found:\n\n"), TEXT("NppOpenAI: missing instructions file"));
+	}
+
+	// Parse instructions file into prompts
+	g_prompts.clear();
+	parseInstructionsFile(instructionsFilePath, g_prompts);
+
+	// Apply default system prompt: if exactly one or none
+	if (g_prompts.size() == 1)
+	{
+		configAPIValue_instructions = g_prompts[0].content;
+		g_lastUsedPromptIndex = 0;
+	}
+	else
+	{
+		// multiple or zero prompts: clear until selection at runtime
+		configAPIValue_instructions.clear();
 	}
 
 	// Get API config/settings
@@ -405,6 +532,16 @@ void askChatGPT()
 	// Now proceed if we have valid text and other conditions are met
 	if (isSecretKey && isEditable && hasValidSelection)
 	{
+		// If multiple system prompts are defined, let the user choose one
+		if (g_prompts.size() > 1)
+		{
+			int idx = choosePrompt(nppData._nppHandle);
+			if (idx < 0)
+				return; // user cancelled
+			configAPIValue_instructions = g_prompts[idx].content;
+			g_lastUsedPromptIndex = idx;
+		}
+
 		// Data to post via cURL
 		json postData = {
 			{"model", toUTF8(configAPIValue_model)},
