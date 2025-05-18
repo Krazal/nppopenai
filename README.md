@@ -13,6 +13,8 @@ Transform your Notepad++ experience with direct access to OpenAI's powerful AI m
 
 ## 🚀 What Can You Do With NppOpenAI?
 
+![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)
+
 ### 💻 Code Like a Pro
 
 ```
