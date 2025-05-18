@@ -15,6 +15,7 @@
 #include "Sci_Position.h"
 #include "Scintilla.h"
 #include "PromptManager.h" // for Prompt struct and related functions
+#include <chrono>          // For timing API calls
 
 /**
  * Makes a POST request to the OpenAI API via cURL
@@ -128,6 +129,9 @@ namespace OpenAIClientImpl
         if (which == -1)
             return;
         HWND curScintilla = (which == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle;
+
+        // Record start time for elapsed time calculation
+        auto startTime = std::chrono::high_resolution_clock::now();
 
         // Show the loader dialog and make sure it's displayed before continuing
         _loaderDlg.doDialog();
@@ -308,7 +312,18 @@ namespace OpenAIClientImpl
         }
 
         // Replace selected text with response
-        replaceSelected(curScintilla, finalText);
+        replaceSelected(curScintilla, finalText); // Calculate elapsed time
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto elapsedMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+        double elapsedSeconds = elapsedMilliseconds / 1000.0;
+
+        // If in debug mode, show elapsed time in a status message
+        if (debugMode)
+        {
+            TCHAR timeMsg[128];
+            swprintf(timeMsg, 128, TEXT("API call completed in %.1f seconds"), elapsedSeconds);
+            ::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)timeMsg);
+        }
 
         // Close the loader dialog when done
         _loaderDlg.display(false);

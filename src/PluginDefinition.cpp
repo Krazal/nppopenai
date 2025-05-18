@@ -38,6 +38,7 @@
 
 // For asynchronous API calls
 #include <thread>
+#include <chrono>  // For timing API calls
 #include <fstream> // For file stream operations
 #include <cstdio>  // For FILE* operations in parseInstructionsFile
 

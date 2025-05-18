@@ -25,7 +25,7 @@
 class LoaderDlg : public StaticDialog
 {
 public:
-	LoaderDlg() = default;
+	LoaderDlg() : _startTime(0), _elapsedSeconds(0) {}
 
 	/**
 	 * Creates the loading dialog with an animated progress bar
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @param toShow Whether to show or hide the dialog
 	 */
-	virtual void display(bool toShow = true) const
+	virtual void display(bool toShow = true)
 	{
 		// Show or hide the window
 		::ShowWindow(_hSelf, toShow ? SW_SHOW : SW_HIDE);
@@ -85,11 +85,23 @@ public:
 		// If showing the window, ensure it's properly displayed
 		if (toShow)
 		{
+			// Record the start time when first showing the dialog
+			_startTime = ::GetTickCount64();
+			_elapsedSeconds = 0;
+
+			// Start the timer for elapsed time updates
+			::SetTimer(_hSelf, 2, 1000, NULL); // Timer ID 2 is for elapsed time (every second)
+
 			// Bring to top, update, and force repaint
 			::SetForegroundWindow(_hSelf);
 			::SetWindowPos(_hSelf, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 			::InvalidateRect(_hSelf, NULL, TRUE);
 			::UpdateWindow(_hSelf);
+		}
+		else
+		{
+			// Kill the elapsed time timer when hiding the dialog
+			::KillTimer(_hSelf, 2);
 		}
 	};
 
@@ -105,6 +117,10 @@ protected:
 	 * @return Result of message processing
 	 */
 	virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+
+private:
+	ULONGLONG _startTime;	   // Timestamp when dialog is first shown
+	ULONGLONG _elapsedSeconds; // Elapsed time in seconds for display
 };
 
 #endif // PLUGINNPPOPENAI_LOADER_DLG_H

@@ -20,6 +20,13 @@
 
 extern NppData nppData;
 
+// Animation counters
+static int dotCount = 0;
+static int spinnerCount = 0;
+// Spinner characters (rotating animation)
+static const TCHAR *spinnerChars[] = {TEXT("⟳"), TEXT("⟲"), TEXT("◷"), TEXT("◶"), TEXT("◵"), TEXT("◴")};
+static const int spinnerCharsCount = sizeof(spinnerChars) / sizeof(spinnerChars[0]);
+
 INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lParam*/)
 {
 	switch (message)
@@ -27,13 +34,30 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 	case WM_INITDIALOG:
 	{
 		// Center the dialog (already using DS_CENTER style)
-		HWND progressBar = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
-		if (progressBar)
+		HWND spinnerControl = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
+		if (spinnerControl)
 		{
-			// Reset and start the marquee animation
-			::SendMessage(progressBar, PBM_SETMARQUEE, FALSE, 0);
-			::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
+			// Set the initial spinner character
+			::SetWindowText(spinnerControl, spinnerChars[0]);
+
+			// Update font for spinner to make it larger
+			HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+									 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+									 DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Segoe UI Symbol"));
+			if (hFont)
+				SendMessage(spinnerControl, WM_SETFONT, (WPARAM)hFont, TRUE);
 		}
+
+		// Reset counters and elapsed time
+		dotCount = 0;
+		spinnerCount = 0;
+		_startTime = ::GetTickCount64();
+		_elapsedSeconds = 0;
+
+		// Start timers for animation and elapsed time counter
+		::SetTimer(_hSelf, 1, 250, NULL);  // Timer ID 1 for dots/spinner animation (faster)
+		::SetTimer(_hSelf, 2, 1000, NULL); // Timer ID 2 for elapsed time (every second)
+
 		return TRUE;
 	}
 
@@ -51,6 +75,69 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 			{
 				::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
 			}
+
+			// Reset dot counter, elapsed time, and start timers
+			dotCount = 0;
+			_startTime = ::GetTickCount64();
+			_elapsedSeconds = 0;
+			::SetTimer(_hSelf, 1, 500, NULL);  // Dots animation
+			::SetTimer(_hSelf, 2, 1000, NULL); // Elapsed time counter
+		}
+		else
+		{
+			// Window is being hidden, kill the timers
+			::KillTimer(_hSelf, 1);
+			::KillTimer(_hSelf, 2);
+		}
+		return TRUE;
+	}
+	case WM_TIMER:
+	{
+		if (wParam == 1) // Our animation timer
+		{
+			// Update the dots in the waiting text
+			dotCount = (dotCount + 1) % 4;
+
+			TCHAR waitingText[64];
+			wcscpy_s(waitingText, 64, TEXT("Please wait for OpenAI's response"));
+
+			// Add dots based on counter
+			for (int i = 0; i < dotCount; i++)
+				wcscat_s(waitingText, 64, TEXT("."));
+
+			// Set the updated text
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, waitingText);
+
+			// Update spinner animation
+			spinnerCount = (spinnerCount + 1) % spinnerCharsCount;
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS, spinnerChars[spinnerCount]);
+		}
+		else if (wParam == 2) // Elapsed time timer
+		{
+			// Calculate elapsed time in seconds
+			ULONGLONG currentTime = ::GetTickCount64();
+			_elapsedSeconds = (currentTime - _startTime) / 1000;
+
+			// Update the elapsed time text
+			TCHAR timeText[128];
+			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), _elapsedSeconds);
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_ESTIMATE, timeText);
+		}
+		return TRUE;
+	}
+	case WM_DESTROY:
+	{
+		// Make sure we kill all timers when the dialog is destroyed
+		::KillTimer(_hSelf, 1); // Animation timer
+		::KillTimer(_hSelf, 2); // Elapsed time timer
+
+		// Clean up font resource
+		HWND spinnerControl = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
+		if (spinnerControl)
+		{
+			HFONT hFont = (HFONT)SendMessage(spinnerControl, WM_GETFONT, 0, 0);
+			if (hFont && hFont != (HFONT)GetStockObject(DEFAULT_GUI_FONT))
+				DeleteObject(hFont);
 		}
 		return TRUE;
 	}
