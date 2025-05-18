@@ -1,19 +1,13 @@
-// this file is part of notepad++
-// Copyright (C)2022 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/**
+ * PluginDefinition.h - Main header for NppOpenAI plugin
+ *
+ * This file defines the core structures and functions for the NppOpenAI plugin,
+ * which allows Notepad++ users to interact with OpenAI's API directly from the editor.
+ * It includes definitions for plugin commands, toolbar icons, and function declarations
+ * for the plugin's core functionality.
+ *
+ * Copyright (C)2022 Don HO <don.h@free.fr>
+ */
 
 #ifndef PLUGINDEFINITION_H
 #define PLUGINDEFINITION_H
@@ -72,45 +66,63 @@ extern std::wstring configAPIValue_proxyURL;
 // Debug mode flag
 extern bool debugMode;
 
-//
-// Initialization of your plugin data
-// It will be called while plugin loading
-//
+/**
+ * Initialization of plugin data
+ * Called during plugin loading
+ *
+ * @param hModule Handle to the plugin DLL module
+ */
 void pluginInit(HANDLE hModule);
 
-//
-// Cleaning of your plugin
-// It will be called while plugin unloading
-//
+/**
+ * Cleanup function called during plugin unloading
+ * Releases resources and saves settings
+ */
 void pluginCleanUp();
 
-//
-// Initialization of your plugin commands + toolbar icons
-//
+/**
+ * Initializes plugin commands and toolbar icons
+ */
 void commandMenuInit();
 void updateToolbarIcons();
 
-//
-// Clean up your plugin commands allocation (if any)
-//
+/**
+ * Cleans up plugin commands allocation
+ */
 void commandMenuCleanUp();
 
-//
-// Function which sets your command
-//
+/**
+ * Sets up a plugin command
+ *
+ * @param index Zero-based index in the command array
+ * @param cmdName Name of the command to show in plugin menu
+ * @param pFunc Function pointer to execute when command is triggered
+ * @param sk Optional keyboard shortcut
+ * @param check0nInit Whether menu item should be checked initially
+ * @return true if command setup succeeded, false otherwise
+ */
 bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk = NULL, bool check0nInit = false);
 
-//
-// Your plugin command functions
-//
+/**
+ * Plugin command functions
+ */
+// Reloads configuration without changing plugin settings
 void loadConfigWithoutPluginSettings();
+// Loads or reloads complete configuration
 void loadConfig(bool loadPluginSettings);
+// Sends selected text to OpenAI API and replaces with response
 void askChatGPT();
+// Opens the configuration INI file
 void openConfig();
+// Opens the system instructions file
 void openInsturctions();
+// Toggles whether to keep user's question in response
 void keepQuestionToggler();
+// Opens dialog to configure chat settings
 void openChatSettingsDlg();
+// Updates chat settings menu text and optionally saves to INI
 void updateChatSettings(bool isWriteToFile = false);
+// Shows the About dialog
 void openAboutDlg();
 
 // Include refactored modules

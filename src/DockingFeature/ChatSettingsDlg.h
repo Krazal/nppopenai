@@ -1,19 +1,28 @@
-//this file is part of notepad++
-//Copyright (C)2022 Don HO <don.h@free.fr>
+// this file is part of notepad++
+// Copyright (C)2022 Don HO <don.h@free.fr>
 //
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either
-//version 2 of the License, or (at your option) any later version.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
 //
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-//You should have received a copy of the GNU General Public License
-//along with this program; if not, write to the Free Software
-//Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+/**
+ * ChatSettingsDlg.h - Chat settings dialog class
+ *
+ * This file defines the dialog for configuring chat functionality in the NppOpenAI plugin.
+ * It allows users to enable/disable chat mode and set the message history limit.
+ *
+ * Copyright (C)2022 Don HO <don.h@free.fr>
+ */
 
 #ifndef PLUGINNPPOPENAI_CHATSETTINGS_DLG_H
 #define PLUGINNPPOPENAI_CHATSETTINGS_DLG_H
@@ -32,33 +41,99 @@
 #include <windowsx.h>
 #include <commctrl.h>
 
+/**
+ * Dialog class for configuring chat functionality
+ *
+ * This dialog allows users to enable or disable chat mode, which maintains
+ * conversation context between API calls, and set the history limit to
+ * control token usage.
+ */
 class ChatSettingsDlg : public StaticDialog
 {
 public:
 	ChatSettingsDlg() : StaticDialog() {};
 
+	/**
+	 * Shows the chat settings dialog
+	 *
+	 * @param isRTL Whether to use right-to-left text layout
+	 */
 	void doDialog(bool isRTL = false);
+
+	/**
+	 * Whether chat mode is enabled
+	 * When enabled, conversation history is maintained between API calls
+	 */
 	bool chatSetting_isChat;
+
+	/**
+	 * Maximum number of messages to keep in chat history
+	 * Higher values provide more context but use more tokens
+	 */
 	int chatSetting_chatLimit;
 
-	// Create a chat settings MODAL dialog to enable/disable OpenAI chat and set its limit
-	virtual void create(int dialogID, bool isRTL = false, bool msgDestParent = true) {
+	/**
+	 * Creates the dialog
+	 *
+	 * @param dialogID Resource ID of the dialog template
+	 * @param isRTL Whether to use right-to-left text layout
+	 * @param msgDestParent Whether messages should be sent to parent
+	 */
+	virtual void create(int dialogID, bool isRTL = false, bool msgDestParent = true)
+	{
 		StaticDialog::create(dialogID, isRTL, msgDestParent);
 	};
 
-	// Toggle loader dialog visibility
-	virtual void display(bool toShow = true) const {
+	/**
+	 * Controls dialog visibility
+	 *
+	 * @param toShow Whether to show or hide the dialog
+	 */
+	virtual void display(bool toShow = true) const
+	{
 		StaticDialog::display(toShow);
 	};
 
-
 protected:
+	/**
+	 * Whether the chat checkbox is checked
+	 * Used to enable or disable chat functionality
+	 */
 	bool enableDisable_isChatChecked;
+
+	/**
+	 * Static dialog procedure
+	 *
+	 * @param hWnd Handle to the dialog window
+	 * @param message Message identifier
+	 * @param wParam Additional message information
+	 * @param lParam Additional message information
+	 * @return Result of message processing
+	 */
 	static INT_PTR CALLBACK StaticDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	/**
+	 * Runs the dialog procedure
+	 *
+	 * @param message Message identifier
+	 * @param wParam Additional message information
+	 * @param lParam Additional message information
+	 * @return Result of message processing
+	 */
 	virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+
+	/**
+	 * Updates the dialog controls
+	 * Ensures the controls reflect the current settings
+	 */
 	void updateDialog();
+
+	/**
+	 * Enables or disables dialog items
+	 *
+	 * @param forceUpdate Whether to force an update of the controls
+	 */
 	void enableDisableDlgItems(bool forceUpdate = false);
 };
-
 
 #endif // PLUGINNPPOPENAI_CHATSETTINGS_DLG_H

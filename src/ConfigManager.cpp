@@ -1,3 +1,11 @@
+/**
+ * ConfigManager.cpp - Configuration handling for NppOpenAI plugin
+ *
+ * This file provides functions for loading, saving, and managing plugin configuration.
+ * It handles settings stored in the NppOpenAI.ini file and system prompts stored in
+ * the NppOpenAI_instructions file.
+ */
+
 #include <windows.h>
 #include <shlwapi.h>
 #include "ConfigManager.h"
@@ -7,6 +15,12 @@
 #include <cstdio>
 #include <vector>
 
+/**
+ * Creates a default configuration file with recommended settings
+ *
+ * This function writes a default INI file with documentation and
+ * standard settings for the OpenAI API integration.
+ */
 void writeDefaultConfig()
 {
     // Write default config - headers first
@@ -33,6 +47,12 @@ void writeDefaultConfig()
 
 namespace ConfigManagerImpl
 {
+    /**
+     * Loads configuration from the INI file
+     *
+     * @param loadPluginSettings If true, also loads plugin-specific settings (keep_question, is_chat, etc.)
+     *                         If false, only loads API-related configuration
+     */
     void loadConfig(bool loadPluginSettings)
     {
         // Check if the config file exists; if not, create it with default values
@@ -55,7 +75,9 @@ namespace ConfigManagerImpl
 
             // Create empty plugin section
             ::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), TEXT("0"), iniFilePath);
-        } // Read values from the config file
+        }
+
+        // Read values from the config file
         TCHAR buffer[1024]; // Read API Key
         ::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), configAPIValue_secretKey.c_str(), buffer, 1024, iniFilePath);
         configAPIValue_secretKey = buffer;
@@ -78,6 +100,7 @@ namespace ConfigManagerImpl
 
         ::GetPrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), buffer, 1024, iniFilePath);
         configAPIValue_model = buffer;
+
         ::GetPrivateProfileString(TEXT("API"), TEXT("temperature"), configAPIValue_temperature.c_str(), buffer, 1024, iniFilePath);
         configAPIValue_temperature = buffer;
 
@@ -149,18 +172,34 @@ namespace ConfigManagerImpl
     }
 }
 
-// Expose as a global function for external calls
+/**
+ * Exposes the loadConfig function for external calls
+ *
+ * This function acts as a wrapper for the internal implementation.
+ * @param loadPluginSettings If true, also loads plugin-specific settings
+ */
 void loadConfig(bool loadPluginSettings)
 {
     ConfigManagerImpl::loadConfig(loadPluginSettings);
 }
 
+/**
+ * Opens the configuration file in Notepad++
+ *
+ * This function sends a message to Notepad++ to open the INI file.
+ */
 void openConfigFile()
 {
     // Open INI
     ::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)iniFilePath);
 }
 
+/**
+ * Opens the instructions file in Notepad++
+ *
+ * This function sends a message to Notepad++ to open the instructions file
+ * and displays a message box with instructions for saving changes.
+ */
 void openInstructionsFile()
 {
     ::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)instructionsFilePath);

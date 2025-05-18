@@ -1,4 +1,12 @@
 // filepath: src/UIHelpers.cpp
+/**
+ * UIHelpers.cpp - User interface helper functions for NppOpenAI
+ *
+ * This file contains utility functions for managing UI elements of the plugin,
+ * including menu items, toolbar icons, dialog boxes, and general user interaction.
+ * It handles user preference toggling and visual state management.
+ */
+
 #include <windows.h>
 #include "UIHelpers.h"
 #include "external_globals.h"
@@ -7,20 +15,33 @@
 #include <nlohmann/json.hpp>  // For JSON version constants
 #include "EncodingUtils.h"    // For myMultiByteToWideChar
 
-// Toggle "Keep my question" menu item
+/**
+ * Toggles the "Keep my question" menu item state
+ *
+ * When enabled, the original user question is kept in the response.
+ * When disabled, only the AI response is shown without the original question.
+ */
 void UIHelpers::keepQuestionToggler()
 {
     isKeepQuestion = !isKeepQuestion;
     ::CheckMenuItem(::GetMenu(nppData._nppHandle), funcItem[6]._cmdID, MF_BYCOMMAND | (isKeepQuestion ? MF_CHECKED : MF_UNCHECKED));
 }
 
-// Open Chat Settings dialog
+/**
+ * Opens the Chat Settings dialog
+ *
+ * Shows a dialog where users can toggle chat mode and set message history limits
+ */
 void UIHelpers::openChatSettingsDlg()
 {
     _chatSettingsDlg.doDialog();
 }
 
-// Update chat settings menu label and write to INI if needed
+/**
+ * Updates the Chat Settings menu item text and optionally saves to INI file
+ *
+ * @param isWriteToFile If true, writes the current settings to the INI file
+ */
 void UIHelpers::updateChatSettings(bool isWriteToFile)
 {
     HMENU chatMenu = ::GetMenu(nppData._nppHandle);
@@ -48,7 +69,12 @@ void UIHelpers::updateChatSettings(bool isWriteToFile)
     }
 }
 
-// Add/update toolbar icons
+/**
+ * Adds or updates toolbar icons
+ *
+ * Prepares and sends toolbar icons to Notepad++ for the Chat Settings feature.
+ * Icons are updated based on the current chat mode and settings.
+ */
 void UIHelpers::updateToolbarIcons()
 {
     // Prepare icons to open Chat Settings
@@ -75,7 +101,11 @@ void UIHelpers::updateToolbarIcons()
     UIHelpers::updateChatSettings();
 }
 
-// About dialog
+/**
+ * Opens the About dialog
+ *
+ * Displays information about the plugin, including version details and dependencies.
+ */
 void UIHelpers::openAboutDlg()
 {
     char about[255];

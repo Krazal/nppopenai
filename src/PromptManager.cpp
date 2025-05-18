@@ -1,3 +1,11 @@
+/**
+ * PromptManager.cpp - System prompt management functionality
+ *
+ * This file handles reading, parsing, and presenting system prompts that can be
+ * used as instructions for AI requests. It supports multiple named prompts in an
+ * INI-style format and provides a UI for users to select which prompt to use.
+ */
+
 #include <windows.h>
 #include <commctrl.h> // for TASKDIALOG_BUTTON, TaskDialogIndirect
 #pragma comment(lib, "comctl32.lib")
@@ -7,6 +15,18 @@
 #include <regex>
 #include <cstdio>
 
+/**
+ * Parses the instructions file containing system prompts
+ *
+ * The file can contain multiple prompts in INI-style format:
+ * [Prompt:name]
+ * Prompt content here...
+ *
+ * If no section headers are found, the entire file content is treated as a single prompt.
+ *
+ * @param filePath Path to the instructions/prompts file
+ * @param prompts Output vector that will be filled with parsed prompts
+ */
 void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
 {
     FILE *file = _wfopen(filePath, L"r, ccs=UNICODE");
@@ -28,6 +48,8 @@ void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
 
         if (std::regex_match(line, match, headerPattern))
         {
+            // If we found a new header and already have a prompt in progress,
+            // save the current one before starting a new one
             if (hasHeader)
                 prompts.push_back(current);
             current = Prompt();
@@ -36,18 +58,33 @@ void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
         }
         else if (hasHeader)
         {
+            // Add line to current named prompt
             current.content += line + L"\n";
         }
         else
         {
+            // No headers found yet, add to default prompt
             current.content += line + L"\n";
         }
     }
     fclose(file);
+    // Save the final prompt
     if (hasHeader || !current.content.empty())
         prompts.push_back(current);
 }
 
+/**
+ * Displays a dialog for the user to choose a system prompt
+ *
+ * This function uses TaskDialogIndirect to present a list of available prompts
+ * to the user. The user can select one prompt, and the function returns the index
+ * of the selected prompt.
+ *
+ * @param owner Handle to the parent window
+ * @param prompts Vector of available prompts
+ * @param lastUsedIndex Index of the last used prompt, used to preselect a default
+ * @return Index of the selected prompt, or -1 if the dialog was canceled
+ */
 int choosePrompt(HWND owner, const std::vector<Prompt> &prompts, int lastUsedIndex)
 {
     size_t count = prompts.size();

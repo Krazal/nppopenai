@@ -1,4 +1,4 @@
-﻿// this file is part of notepad++
+﻿// This file is part of NppOpenAI, a Notepad++ plugin that integrates OpenAI's API
 // Copyright (C)2022 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
@@ -19,80 +19,78 @@
 #include "DockingFeature/LoaderDlg.h"
 #include "DockingFeature/ChatSettingsDlg.h"
 #include "menuCmdID.h"
-#include "ConfigManager.h" // newly added for config delegation
-#include "PromptManager.h" // manage named prompts
-#include "EncodingUtils.h" // UTF-8 / wide-char helpers
-#include "DebugUtils.h"	   // debug logging functions
-#include "OpenAIClient.h"  // askChatGPT, cURL wrapper
-#include "UIHelpers.h"	   // UI-related functions
+#include "ConfigManager.h" // Configuration management functions
+#include "PromptManager.h" // System prompts management
+#include "EncodingUtils.h" // UTF-8 / wide-char conversion utilities
+#include "DebugUtils.h"	   // Debug logging functions
+#include "OpenAIClient.h"  // API client wrapper for OpenAI integration
+#include "UIHelpers.h"	   // UI-related functions for menus and dialogs
 
-// For file + cURL + JSON ops
+// Libraries for file operations, cURL, and JSON handling
 #include <wchar.h>
 #include <shlwapi.h>
 #include <curl/curl.h>
-#include <codecvt> // codecvt_utf8
-#include <locale>  // wstring_convert
+#include <codecvt> // Unicode conversion utilities
+#include <locale>  // For wstring_convert
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <iomanip> // For std::setfill and std::setw in debug functions
 
-// For "async" cURL calls
+// For asynchronous API calls
 #include <thread>
 #include <fstream> // For file stream operations
 #include <cstdio>  // For FILE* operations in parseInstructionsFile
 
-#include <commctrl.h> // For TaskDialogIndirect
+#include <commctrl.h> // For TaskDialogIndirect and common controls
 #pragma comment(lib, "comctl32.lib")
 
-// Instead of `#include <commctrl.h>` we define the required constants only!
-#define UD_MAXVAL 0x7fff // 32767 (more than enough)
+// Define UpDown control max value constant
+#define UD_MAXVAL 0x7fff // 32767 (more than enough for max tokens)
 
-// For cURL JSON requests/responses
+// Use nlohmann/json for JSON parsing and generation
 using json = nlohmann::json;
 
-// Loader window ("Please wait for OpenAI's response…")
+// Dialog windows for loading animation and settings
 HANDLE _hModule;
 LoaderDlg _loaderDlg;
 ChatSettingsDlg _chatSettingsDlg;
 
-// Config file related vars/constants
-TCHAR iniFilePath[MAX_PATH];
-TCHAR instructionsFilePath[MAX_PATH]; // Aka. file for OpenAI system message
+// Config file paths
+TCHAR iniFilePath[MAX_PATH];		  // Path to main config INI file
+TCHAR instructionsFilePath[MAX_PATH]; // Path to system prompt instructions file
 
-// The plugin data that Notepad++ needs
+// Plugin command array for Notepad++ integration
 FuncItem funcItem[nbFunc];
 
-// The data of Notepad++ that you can use in your plugin commands
+// Notepad++ data structure with handles to main window and Scintilla editor
 NppData nppData;
 
-// For debug purposes
+// Debug mode flag for detailed logging
 bool debugMode = false;
 
-// Config file related vars
-std::wstring configAPIValue_secretKey = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
-std::wstring configAPIValue_baseURL = TEXT("https://api.openai.com/");			// Trailing '/' will be erased (if any)
-std::wstring configAPIValue_proxyURL = TEXT("0");								// 0: don't use proxy. Trailing '/' will be erased (if any)
-std::wstring configAPIValue_model = TEXT("gpt-4o-mini");						// Recommended default model. NOTE: You can use use "gpt-3.5-turbo", "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
-std::wstring configAPIValue_instructions = TEXT("");							// System message ("instuctions") for the OpenAI API e.g. "Translate the given text into English." or "Create a PHP function based on the received text.". Leave empty to skip.
-std::wstring configAPIValue_temperature = TEXT("0.7");
-std::wstring configAPIValue_maxTokens = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
-std::wstring configAPIValue_topP = TEXT("0.8");
-std::wstring configAPIValue_frequencyPenalty = TEXT("0");
-std::wstring configAPIValue_presencePenalty = TEXT("0");
-bool isKeepQuestion = true;
-std::vector<std::wstring> chatHistory = {};
+// Configuration variables for OpenAI API
+std::wstring configAPIValue_secretKey = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // API key
+std::wstring configAPIValue_baseURL = TEXT("https://api.openai.com/");			// API base URL (trailing '/' gets removed)
+std::wstring configAPIValue_proxyURL = TEXT("0");								// Proxy URL (0 = no proxy)
+std::wstring configAPIValue_model = TEXT("gpt-4o-mini");						// Default LLM model
+std::wstring configAPIValue_instructions = TEXT("");							// System message for API requests
+std::wstring configAPIValue_temperature = TEXT("0.7");							// Randomness parameter
+std::wstring configAPIValue_maxTokens = TEXT("0");								// 0 = no limit, otherwise max token count
+std::wstring configAPIValue_topP = TEXT("0.8");									// Nucleus sampling parameter
+std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition penalty
+std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
+bool isKeepQuestion = true;														// Keep original question in response
+std::vector<std::wstring> chatHistory = {};										// Chat history for context
 
-// Collect selected text by Scintilla here (UTF-8)
+// Buffer for selected text in Scintilla editor (UTF-8)
 static char selectedTextA[9999];
 static std::string lastSelection;
 
-// Parsed prompts and last-used index
-static std::vector<Prompt> g_prompts;
-static int g_lastUsedPromptIndex = -1;
+// Prompt management
+static std::vector<Prompt> g_prompts;  // Parsed system prompts from instructions file
+static int g_lastUsedPromptIndex = -1; // Last used prompt index for persistence
 
-//
-// Initialize your plugin data here
-// It will be called while plugin loading
+// Initialize plugin data and UI components
 void pluginInit(HANDLE hModule)
 {
 	// Initialize common controls for TaskDialog
@@ -108,39 +106,35 @@ void pluginInit(HANDLE hModule)
 	_chatSettingsDlg.chatSetting_chatLimit = 10;
 }
 
-//
-// Here you can do the clean up, save the parameters (if any) for the next session
-//
+// Clean up resources and save settings on plugin unload
 void pluginCleanUp()
 {
 	wchar_t chatLimitBuffer[6];
 	wsprintfW(chatLimitBuffer, L"%d", _chatSettingsDlg.chatSetting_chatLimit);
 	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), isKeepQuestion ? TEXT("1") : TEXT("0"), iniFilePath);
 	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), _chatSettingsDlg.chatSetting_isChat ? TEXT("1") : TEXT("0"), iniFilePath);
-	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimitBuffer, iniFilePath); // Convert int (9+) to LPCWSTR
+	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimitBuffer, iniFilePath); // Convert int to LPCWSTR
 }
 
-//
-// Initialization of your plugin commands
-// You should fill your plugins commands here
+// Initialize plugin menus and config paths
 void commandMenuInit()
 {
 	TCHAR configDirPath[MAX_PATH];
 
-	// Get path to the plugin config + instructions (aka. OpenAI system message) file
+	// Get path to the plugin config directory
 	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINSCONFIGDIR, MAX_PATH, (LPARAM)configDirPath);
 
-	// If config path doesn't exist, create it
-	if (PathFileExistsW(configDirPath) == FALSE) // Modified from `PathFileExists()`
+	// Create config directory if it doesn't exist
+	if (PathFileExistsW(configDirPath) == FALSE)
 	{
 		::CreateDirectory(configDirPath, NULL);
 	}
 
-	// Prepare config + instructions (aka. system message) file
+	// Set paths for config and instructions files
 	PathCombine(iniFilePath, configDirPath, TEXT("NppOpenAI.ini"));
 	PathCombine(instructionsFilePath, configDirPath, TEXT("NppOpenAI_instructions"));
 
-	// Load config file content
+	// Load configuration from INI file
 	loadConfig(true);
 
 	//--------------------------------------------//
@@ -154,47 +148,45 @@ void commandMenuInit()
 	//            bool check0nInit                // optional. Make this menu item be checked visually
 	//            );
 
-	// Shortcuts for ChatGPT plugin
+	// Define keyboard shortcut Ctrl+Shift+O for askChatGPT command
 	ShortcutKey *askChatGPTKey = new ShortcutKey;
 	askChatGPTKey->_isAlt = false;
 	askChatGPTKey->_isCtrl = true;
 	askChatGPTKey->_isShift = true;
 	askChatGPTKey->_key = 0x4f; // 'O'
 
-	// Plugin menu items
+	// Add all menu items for the plugin
 	setCommand(0, TEXT("Ask &OpenAI"), askChatGPT, askChatGPTKey, false);
-	setCommand(1, TEXT("---"), NULL, NULL, false);
+	setCommand(1, TEXT("---"), NULL, NULL, false); // Separator
 	setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
 	setCommand(3, TEXT("Edit &Instructions"), openInsturctions, NULL, false);
 	setCommand(4, TEXT("&Load Config"), loadConfigWithoutPluginSettings, NULL, false);
-	setCommand(5, TEXT("---"), NULL, NULL, false);
+	setCommand(5, TEXT("---"), NULL, NULL, false); // Separator
 	setCommand(6, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
-	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by `updateToolbarIcons()` » `updateChatSettings()`
-	setCommand(8, TEXT("---"), NULL, NULL, false);
+	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by updateToolbarIcons
+	setCommand(8, TEXT("---"), NULL, NULL, false);									   // Separator
 	setCommand(9, TEXT("&About"), openAboutDlg, NULL, false);
 	setCommand(10, TEXT("&Toggle Debug Mode"), toggleDebugMode, NULL, debugMode);
 }
 
-// Add/update toolbar icons
+// Add and update toolbar icons in Notepad++
 void updateToolbarIcons()
 {
 	UIHelpers::updateToolbarIcons();
 }
 
-//
-// Here you can do the clean up (especially for the shortcut)
-//
+// Clean up shortcut keys and dialog resources
 void commandMenuCleanUp()
 {
-	// Don't forget to deallocate your shortcut here
+	// Free shortcut key memory
 	delete funcItem[0]._pShKey;
+
+	// Destroy dialog resources
 	_loaderDlg.destroy();
 	_chatSettingsDlg.destroy();
 }
 
-//
-// This function help you to initialize your plugin commands
-//
+// Helper function to set up a menu command
 bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk, bool check0nInit)
 {
 	if (index >= nbFunc)
@@ -215,54 +207,51 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //-- STEP 4. DEFINE YOUR ASSOCIATED FUNCTIONS --//
 //----------------------------------------------//
 
-// Wrapper function to match the PFUNCPLUGINCMD signature
+// Wrapper function to reload configuration without modifying plugin settings
 void loadConfigWithoutPluginSettings()
 {
 	loadConfig(false);
 }
 
-// Load (and create if not found) config file is in ConfigManager.cpp
-// No need to redefine it here, as it's already declared in ConfigManager.h
-
-// Open config file
+// Open the plugin configuration INI file
 void openConfig()
 {
 	openConfigFile();
 }
 
-// Open insturctions file
+// Open the system instructions/prompts file
 void openInsturctions()
 {
 	openInstructionsFile();
 }
 
-// askChatGPT has been moved to OpenAIClient.cpp and is now called by this function
+// Main function to send the current selection to OpenAI's API
 void askChatGPT()
 {
 	// Call the implementation in the OpenAIClient namespace
 	OpenAIClientImpl::askChatGPT();
 }
 
-// Toggle "Keep my question" menu item
+// Toggle the "Keep my question" menu item state
 void keepQuestionToggler()
 {
 	UIHelpers::keepQuestionToggler();
 }
 
-// Open Chat Settings dialog
+// Open the chat settings dialog
 void openChatSettingsDlg()
 {
 	// Direct call to ChatSettingsDlg to avoid UIHelpers namespace issue
 	_chatSettingsDlg.doDialog();
 }
 
-// Update chat settings menu and INI if needed
+// Update chat settings menu text and save to INI if needed
 void updateChatSettings(bool isWriteToFile)
 {
 	UIHelpers::updateChatSettings(isWriteToFile);
 }
 
-// Open About dialog
+// Show the About dialog with version information
 void openAboutDlg()
 {
 	UIHelpers::openAboutDlg();
@@ -270,4 +259,4 @@ void openAboutDlg()
 
 /*** HELPER FUNCTIONS ***/
 
-// ...all helper functions are now in EncodingUtils.cpp, DebugUtils.cpp, OpenAIClient.cpp, and UIHelpers.cpp
+// All helper functions are now in EncodingUtils.cpp, DebugUtils.cpp, OpenAIClient.cpp, and UIHelpers.cpp

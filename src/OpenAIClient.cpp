@@ -1,4 +1,12 @@
 // filepath: src/OpenAIClient.cpp
+/**
+ * OpenAIClient.cpp - Implementation of OpenAI API client functionality
+ *
+ * This file handles communication with the OpenAI API and manages the
+ * request/response cycle. It includes functions for making HTTP calls via cURL,
+ * handling responses, and updating the Notepad++ editor with AI-generated content.
+ */
+
 #include <windows.h>
 #include "OpenAIClient.h"
 #include "external_globals.h"
@@ -8,7 +16,15 @@
 #include "Scintilla.h"
 #include "PromptManager.h" // for Prompt struct and related functions
 
-// Low-level call via cURL to send request and capture response
+/**
+ * Makes a POST request to the OpenAI API via cURL
+ *
+ * @param url The full API endpoint URL to call
+ * @param proxy Optional proxy server to use (or "0" for no proxy)
+ * @param request The JSON request body as a string
+ * @param response Output parameter that will store the API response
+ * @return true if the request was successful (200-level response), false otherwise
+ */
 bool callOpenAI(const std::string &url, const std::string &proxy, const std::string &request, std::string &response)
 {
     CURL *curl = curl_easy_init();
@@ -46,7 +62,18 @@ bool callOpenAI(const std::string &url, const std::string &proxy, const std::str
     return (res == CURLE_OK && (http_code >= 200 && http_code < 300));
 }
 
-// Callback for cURL writes; appends data to std::string
+/**
+ * Callback function for cURL to write response data
+ *
+ * This function is called by cURL when response data is received.
+ * It appends the received data to the std::string pointer passed as userp.
+ *
+ * @param contents The received data buffer
+ * @param size Always 1
+ * @param nmemb The size of the data received
+ * @param userp User-provided pointer (std::string for response data)
+ * @return The number of bytes processed (should match nmemb on success)
+ */
 size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t totalSize = size * nmemb;
@@ -55,7 +82,12 @@ size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp
     return totalSize;
 }
 
-// Replace the current selection in the given Scintilla handle with responseText
+/**
+ * Replace the currently selected text in a Scintilla editor
+ *
+ * @param curScintilla Handle to the current Scintilla editor instance
+ * @param responseText The text that will replace the selected text
+ */
 void replaceSelected(HWND curScintilla, const std::string &responseText)
 {
     // Get current selection range
@@ -68,18 +100,29 @@ void replaceSelected(HWND curScintilla, const std::string &responseText)
     ::SendMessageA(curScintilla, SCI_REPLACETARGET, static_cast<WPARAM>(responseText.size()), reinterpret_cast<LPARAM>(responseText.c_str()));
 }
 
-// Display an error when instructions file cannot be read or found
+/**
+ * Display an error message when the instructions file cannot be read or found
+ *
+ * @param errorMessage The error message to display
+ * @param errorCaption The caption for the error dialog
+ */
 void instructionsFileError(const WCHAR *errorMessage, const WCHAR *errorCaption)
 {
     ::MessageBox(nppData._nppHandle, errorMessage, errorCaption, MB_ICONERROR);
 }
 
-// Implementation of the askChatGPT function
-// This is called from PluginDefinition.cpp
+/**
+ * Implementation of the askChatGPT function
+ *
+ * This function is called from PluginDefinition.cpp. It handles the process of
+ * sending a user-selected text to the OpenAI API and replacing the selection
+ * with the AI-generated response.
+ */
 namespace OpenAIClientImpl
 {
     void askChatGPT()
-    { // Get the current Scintilla window
+    {
+        // Get the current Scintilla window
         int which = -1;
         ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&which);
         if (which == -1)
@@ -172,7 +215,9 @@ namespace OpenAIClientImpl
         if (url.back() != '/')
             url += '/';
         url += "v1/chat/completions";
-        std::string proxy = toUTF8(configAPIValue_proxyURL); // Call OpenAI API
+        std::string proxy = toUTF8(configAPIValue_proxyURL);
+
+        // Call OpenAI API
         std::string response;
         bool ok = callOpenAI(url, proxy, reqJson.dump(), response);
         if (!ok)
@@ -249,7 +294,9 @@ namespace OpenAIClientImpl
             {
                 replyText = "[Failed to parse OpenAI response]";
             }
-        } // Format the response based on "keep my question" preference
+        }
+
+        // Format the response based on "keep my question" preference
         std::string finalText;
         if (isKeepQuestion)
         {

@@ -1,67 +1,144 @@
-# NppOpenAI — OpenAI (aka. ChatGPT) plugin for Notepad++
+# NppOpenAI — Bring AI Power to Notepad++
 
-A simple Notepad++ plugin to communicate with OpenAI directly from your favorite code editor.
+Transform your Notepad++ experience with direct access to OpenAI's powerful AI models. Ask questions, translate text, generate code, summarize content, and more - without ever leaving your editor.
 
-## How it works?
+![NppOpenAI Plugin Banner](https://github.com/Krazal/nppopenai/raw/master/vs.proj/Resources/toolbar_icon_chat_32x32.ico)
 
-Simply select your text in Notepad++, press `Ctrl + Shift + O`, and you'll see the AI generated response in seconds. (Additional settings required.) Two examples: "Please create a Fibonacci function in PHP"; "Mi az árvíztűrő tükörfúrógép?" (Hungarian Unicode test). This plugin requires an active internet connection and an OpenAI registration / API key (handles it confidentially).
+## ✨ Quick Start
 
-## Can I install (update) it manually?
+1. Select text in Notepad++
+2. Press `Ctrl + Shift + O`
+3. Get AI-generated responses instantly!
 
-Sure! If the latest release here in GitHub is newer than the NppOpenAI plugin in the Plugin Manager, [follow this guide](https://github.com/Krazal/nppopenai/wiki/FAQ#question-ive-an-old-buggy-nppopenai-release-how-should-i-update) to install it manually.
+## 🚀 What Can You Do With NppOpenAI?
 
-## How to configure?
+### 💻 Code Like a Pro
 
-**To remove your original question/request,** please uncheck Plugins » NppOpenAI » Keep my question option.
+```
+// Select this comment and press Ctrl+Shift+O
+// Write a function that calculates the Fibonacci sequence in PHP
+```
 
-For additional settings, please open the configuration file (`NppOpenAI.ini`) from Plugins » NppOpenAI » Edit Config, and edit the `[API]` section. For available plugin settings, see [OpenAI API Reference](https://platform.openai.com/docs/api-reference/completions). You can track your token usage via the `total_tokens_used` setting in `[PLUGIN]` section.
+### 🌐 Translate Anything
 
-**To send a system message** (I call this “instructions”) along with your question, please open the instructions file (`NppOpenAI_instructions`) from Plugins » NppOpenAI » Edit Instructions. How to use? For example:
+```
+Mi az árvíztűrő tükörfúrógép?
+(Select this Hungarian text and press Ctrl+Shift+O to see it translated)
+```
 
-- Click Plugins » NppOpenAI » Edit Instructions
-- Enter any instruction, like: Please translate the received text into English.
-- Save the file
-- Click Plugins » NppOpenAI » Load Config
-- Open an empty file and enter e.g. Kérlek, mondd, hogy ez egy teszt
-- Select the text and press `Ctrl + Shift + O`
-- You should get the following result: “Please, say that this is a test”, instead of “Ez egy teszt” (“This is a test”).
+### 📝 Summarize Documents
 
-## Multiple Prompts
+Select long texts, press `Ctrl+Shift+O`, and get concise summaries that retain the key points.
 
-You can now define more than one named system prompt in your `NppOpenAI_instructions` file. Use INI-style sections, for example:
+### 🤔 Get Answers to Complex Questions
+
+Whether it's technical explanations, algorithms, or creative ideas - just ask!
+
+## 🛠️ Setup Made Simple
+
+1. **Configure Your API Key**:
+
+   - Go to Plugins » NppOpenAI » Edit Config
+   - Add your OpenAI API key in the [API] section
+   - Set other preferences like model type and temperature
+
+2. **Load Your Settings**:
+
+   - Click Plugins » NppOpenAI » Load Config
+
+3. **Start Using AI**:
+   - Select text
+   - Press `Ctrl+Shift+O`
+   - Watch the magic happen!
+
+## ✅ Smart Customization
+
+### Create Custom AI Assistants
+
+NppOpenAI supports multiple AI personalities through custom prompts. Create specialized helpers for:
+
+- **Code Reviews** 🔍
+- **Language Translation** 🌍
+- **Technical Writing Assistance** ✏️
+- **Data Analysis** 📊
+- **Creative Writing** 📚
+
+Simply open your instructions file (Plugins » NppOpenAI » Edit Instructions) and add prompts like:
 
 ```ini
-[Prompt:greet]
-You are a helpful assistant. Greet the user warmly.
-
 [Prompt:translate]
 Translate the selected text to English.
 
-[Prompt:summary]
+[Prompt:code_review]
+Review this code for bugs and suggest improvements.
+
+[Prompt:summarize]
 Summarize the selected text in bullet points.
 ```
 
-After saving the file and clicking **Plugins » NppOpenAI » Load Config**, the next time you press `Ctrl + Shift + O` a dialog will appear letting you choose which prompt to apply. Select a prompt, and its content will be sent as the system message to OpenAI.
+### Chat Functionality
 
-**Note:** If you define only one prompt (or none), the plugin will apply that prompt (or no system message) automatically without showing a selection dialog.
+Enable chat mode to maintain conversation context between requests:
 
-If you don't want to use “instructions”, please leave the `NppOpenAI_instructions` file empty.
+1. Click Plugins » NppOpenAI » Chat: off
+2. Check "Use chat" and set your preferred history limit
+3. Enjoy contextual conversations with the AI!
 
-After editing and saving `NppOpenAI.ini` and/or `NppOpenAI_instructions`, please always load your settings: Plugins menu » NppOpenAI » Load Config.
+## ⚙️ Additional Settings
 
-**To enable chat,** please click Plugins » NppOpenAI » Chat: off menu item, and check in the Use chat. You may also increase/decrease chat limit for optimal token usage. To turn off chat, please click Plugins » NppOpenAI » Chat limit: [numeric limit] and turn off Use chat.
+- **Remove Original Questions**: Uncheck Plugins » NppOpenAI » Keep my question
+- **Adjust Response Style**: Modify temperature and other parameters in the config file
+- **Track Token Usage**: Monitor your API usage in the [PLUGIN] section of NppOpenAI.ini
 
-The chat can even be used in conjunction with the “instructions”. However, the chat history to be displayed is not (yet) available.
+## 📚 Example Prompt Templates
 
-## Have a question?
+### Translation Assistant
 
-If you experience an error or are interested in suggestions, please visit the [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ)!
+```ini
+[Prompt:Translate_2_EN]
+Translate the provided text into English while maintaining its original meaning, tone and layout.
 
-## Additional information
+# Output Format
+The translation should be delivered in English. Start the translation directly without prefacing it with any additional context or commentary.
 
-Some help how to build cURL with OpenSSL and zlib:
-https://developers.refinitiv.com/en/article-catalog/article/how-to-build-openssl--zlib--and-curl-libraries-on-windows
+# Notes
+- Ensure that nuances and idiomatic expressions from the original text are accurately translated to retain their original intent and meaning.
+- Pay special attention to grammar and style to ensure the translated text is easy to read and understand.
+```
 
-After manually building this plugin, please copy `*.dll` and `cacert.pem` (source: https://curl.se/ca/cacert.pem) files from `vs.proj/helper_files_[platform]` directory to your Notepad++ plugin folder (`C:\Program Files (x86)\Notepad++\plugins\NppOpenAI` by default).
+### Code Helper
 
-ARM platforms are not supported.
+```ini
+[Prompt:code_assistant]
+Analyze the provided code and help improve it. Consider:
+- Bugs or logical errors
+- Performance optimizations
+- Better coding practices
+- Clearer naming conventions
+
+Respond with specific suggestions and example code when appropriate.
+```
+
+### Document Summarizer
+
+```ini
+[Prompt:Summarize]
+Summarize the selected text while retaining its original meaning and key points. Use dynamic reasoning to determine whether to keep the overall structure for long documents or merge the content into a single paragraph for shorter documents.
+
+# Output Format
+For longer documents, retain the existing structure in the summary but condensed. For shorter documents, deliver the summary as a single, coherent paragraph in English.
+
+# Notes
+- Ensure that the main ideas and critical information from the original text are accurately captured.
+- Pay special attention to grammar and style to ensure the summarized text is easy to read and understand.
+```
+
+## 🆘 Need Help?
+
+Have a question or experiencing an issue? Visit our [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ) for solutions to common problems.
+
+---
+
+**💡 Pro Tip**: Keep your instructions file open in one tab while working in another for seamless AI assistance without disrupting your workflow.
+
+Unleash the power of AI directly in your favorite editor with NppOpenAI!
