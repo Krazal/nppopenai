@@ -74,8 +74,7 @@ public:
 	 *
 	 * Shows or hides the dialog window. If showing, ensures
 	 * the window is properly displayed and brought to the front.
-	 *
-	 * @param toShow Whether to show or hide the dialog
+	 *	 * @param toShow Whether to show or hide the dialog
 	 */
 	virtual void display(bool toShow = true)
 	{
@@ -89,7 +88,8 @@ public:
 			_startTime = ::GetTickCount64();
 			_elapsedSeconds = 0;
 
-			// Start the timer for elapsed time updates
+			// Start timers for both animations and elapsed time
+			::SetTimer(_hSelf, 1, 150, NULL);  // Timer ID 1 for spinner animation
 			::SetTimer(_hSelf, 2, 1000, NULL); // Timer ID 2 is for elapsed time (every second)
 
 			// Bring to top, update, and force repaint
@@ -100,8 +100,9 @@ public:
 		}
 		else
 		{
-			// Kill the elapsed time timer when hiding the dialog
-			::KillTimer(_hSelf, 2);
+			// Kill all timers when hiding the dialog
+			::KillTimer(_hSelf, 1); // Animation timer
+			::KillTimer(_hSelf, 2); // Elapsed time timer
 		}
 	};
 

@@ -16,6 +16,7 @@
 #include "Scintilla.h"
 #include "PromptManager.h" // for Prompt struct and related functions
 #include <chrono>          // For timing API calls
+#include <future>          // for async spinner responsiveness
 
 /**
  * Makes a POST request to the OpenAI API via cURL
@@ -50,7 +51,22 @@ bool callOpenAI(const std::string &url, const std::string &proxy, const std::str
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIcURLCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
-    CURLcode res = curl_easy_perform(curl);
+    // Perform the request asynchronously to allow UI timers to run
+    auto futureRes = std::async(std::launch::async, [curl]()
+                                { return curl_easy_perform(curl); });
+    CURLcode res;
+    // Pump UI message loop until request completes
+    while (futureRes.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready)
+    {
+        MSG msg;
+        while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            ::TranslateMessage(&msg);
+            ::DispatchMessage(&msg);
+        }
+        ::Sleep(10);
+    }
+    res = futureRes.get();
 
     // Get HTTP status code
     long http_code = 0;

@@ -9,6 +9,7 @@ Transform your Notepad++ experience with direct access to OpenAI's powerful AI m
 1. Select text in Notepad++
 2. Press `Ctrl + Shift + O`
 3. Get AI-generated responses instantly!
+   > A loading dialog will appear, displaying the selected AI model (e.g. "gpt-4o-mini response") with a spinner animation while waiting for the reply.
 
 ## 🚀 What Can You Do With NppOpenAI?
 

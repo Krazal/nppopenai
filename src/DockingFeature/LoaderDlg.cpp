@@ -17,14 +17,15 @@
 
 #include "../PluginDefinition.h"
 #include "LoaderDlg.h"
+#include "../external_globals.h"
 
 extern NppData nppData;
 
 // Animation counters
 static int dotCount = 0;
 static int spinnerCount = 0;
-// Spinner characters (rotating animation)
-static const TCHAR *spinnerChars[] = {TEXT("⟳"), TEXT("⟲"), TEXT("◷"), TEXT("◶"), TEXT("◵"), TEXT("◴")};
+// Spinner characters (rotating animation) - using simple ASCII characters that work in all fonts
+static const TCHAR *spinnerChars[] = {TEXT("|"), TEXT("/"), TEXT("-"), TEXT("\\")};
 static const int spinnerCharsCount = sizeof(spinnerChars) / sizeof(spinnerChars[0]);
 
 INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lParam*/)
@@ -40,27 +41,31 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 			// Set the initial spinner character
 			::SetWindowText(spinnerControl, spinnerChars[0]);
 
-			// Update font for spinner to make it larger
-			HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+			// Update font for spinner to make it larger - use a common monospace font
+			HFONT hFont = CreateFont(36, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 									 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-									 DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Segoe UI Symbol"));
+									 DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Courier New"));
 			if (hFont)
 				SendMessage(spinnerControl, WM_SETFONT, (WPARAM)hFont, TRUE);
 		}
 
 		// Reset counters and elapsed time
-		dotCount = 0;
+		dotCount = 0; // dots disabled
 		spinnerCount = 0;
 		_startTime = ::GetTickCount64();
 		_elapsedSeconds = 0;
 
 		// Start timers for animation and elapsed time counter
-		::SetTimer(_hSelf, 1, 250, NULL);  // Timer ID 1 for dots/spinner animation (faster)
+		::SetTimer(_hSelf, 1, 150, NULL);  // Timer ID 1 for dots/spinner animation (faster)
 		::SetTimer(_hSelf, 2, 1000, NULL); // Timer ID 2 for elapsed time (every second)
+
+		// Set initial static text to model name response
+		TCHAR modelText[128];
+		swprintf(modelText, 128, TEXT("%s response"), configAPIValue_model.c_str());
+		::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
 
 		return TRUE;
 	}
-
 	case WM_SHOWWINDOW:
 	{
 		if (wParam == TRUE) // Window is being shown
@@ -69,18 +74,19 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 			::InvalidateRect(_hSelf, NULL, TRUE);
 			::UpdateWindow(_hSelf);
 
-			// Restart the marquee animation
-			HWND progressBar = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
-			if (progressBar)
+			// Set initial spinner state
+			HWND spinnerControl = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
+			if (spinnerControl)
 			{
-				::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
+				::SetWindowText(spinnerControl, spinnerChars[0]);
 			}
 
 			// Reset dot counter, elapsed time, and start timers
 			dotCount = 0;
+			spinnerCount = 0;
 			_startTime = ::GetTickCount64();
 			_elapsedSeconds = 0;
-			::SetTimer(_hSelf, 1, 500, NULL);  // Dots animation
+			::SetTimer(_hSelf, 1, 150, NULL);  // Animation timer (faster for smoother animation)
 			::SetTimer(_hSelf, 2, 1000, NULL); // Elapsed time counter
 		}
 		else
@@ -95,22 +101,15 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 	{
 		if (wParam == 1) // Our animation timer
 		{
-			// Update the dots in the waiting text
-			dotCount = (dotCount + 1) % 4;
-
-			TCHAR waitingText[64];
-			wcscpy_s(waitingText, 64, TEXT("Please wait for OpenAI's response"));
-
-			// Add dots based on counter
-			for (int i = 0; i < dotCount; i++)
-				wcscat_s(waitingText, 64, TEXT("."));
-
-			// Set the updated text
-			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, waitingText);
-
-			// Update spinner animation
+			// Update spinner animation (no dots)
 			spinnerCount = (spinnerCount + 1) % spinnerCharsCount;
-			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS, spinnerChars[spinnerCount]);
+			HWND spinnerControl = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS);
+			if (spinnerControl)
+			{
+				::SetWindowText(spinnerControl, spinnerChars[spinnerCount]);
+				::InvalidateRect(spinnerControl, NULL, TRUE);
+				::UpdateWindow(spinnerControl);
+			}
 		}
 		else if (wParam == 2) // Elapsed time timer
 		{
