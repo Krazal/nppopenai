@@ -2,7 +2,7 @@
 
 Transform your Notepad++ experience with direct access to OpenAI's powerful AI models. Ask questions, translate text, generate code, summarize content, and more - without ever leaving your editor.
 
-![NppOpenAI Plugin Banner](https://github.com/Krazal/nppopenai/raw/master/src/Resources/toolbar_icon_chat_32x32.ico)
+![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)
 
 ## ✨ Quick Start
 
