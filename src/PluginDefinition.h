@@ -19,6 +19,15 @@
 #define PLUGINDEFINITION_H
 #define CURL_STATICLIB
 
+#include <windows.h>
+
+#ifdef RC_INVOKED
+// For Resource Compiler, provide minimal includes
+#else
+// Regular includes for C++ compilation
+#include <nlohmann/json.hpp>
+#endif
+
 //
 // All definitions of plugin interface
 //
@@ -104,19 +113,11 @@ void openChatSettingsDlg();
 void updateChatSettings(bool isWriteToFile = false);
 void openAboutDlg();
 
-/*** HELPER FUNCTIONS ***/
-bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string &JSONResponse);
-static size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
-void replaceSelected(HWND curScintilla, std::string responseText);
-void instructionsFileError(TCHAR *errorMessage, TCHAR *errorCaption);
-std::string toUTF8(std::wstring);
-TCHAR *myMultiByteToWideChar(char *fromChar);
-
-/*** DEBUG FUNCTIONS ***/
-void toggleDebugMode();
-void debugText(const wchar_t *text);
-void debugTextBinary(const wchar_t *text);
-void debugTextCharByChar(const wchar_t *text);
-std::string hexDump(const char *data, size_t size);
+// Include refactored modules
+#include "ConfigManager.h"
+#include "PromptManager.h"
+#include "EncodingUtils.h"
+#include "DebugUtils.h"
+#include "OpenAIClient.h"
 
 #endif // PLUGINDEFINITION_H

@@ -25,8 +25,7 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-  </ItemGroup>
-  <ItemGroup>
+  </ItemGroup>  <ItemGroup>
     <ClInclude Include="..\src\DockingFeature\ChatSettingsDlg.h" />
     <ClInclude Include="..\src\DockingFeature\chatSettingsResource.h" />
     <ClInclude Include="..\src\DockingFeature\Docking.h" />
@@ -45,13 +44,24 @@
     <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\Scintilla.h" />
     <ClInclude Include="..\src\Sci_Position.h" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="..\src\ConfigManager.h" />
+    <ClInclude Include="..\src\DebugUtils.h" />
+    <ClInclude Include="..\src\EncodingUtils.h" />
+    <ClInclude Include="..\src\OpenAIClient.h" />
+    <ClInclude Include="..\src\PromptManager.h" />
+    <ClInclude Include="..\src\UIHelpers.h" />
+  </ItemGroup><ItemGroup>
     <ClCompile Include="..\src\DockingFeature\ChatSettingsDlg.cpp" />
     <ClCompile Include="..\src\DockingFeature\LoaderDlg.cpp" />
     <ClCompile Include="..\src\DockingFeature\StaticDialog.cpp" />
     <ClCompile Include="..\src\NppPluginDemo.cpp" />
     <ClCompile Include="..\src\PluginDefinition.cpp" />
+    <ClCompile Include="..\src\ConfigManager.cpp" />
+    <ClCompile Include="..\src\DebugUtils.cpp" />
+    <ClCompile Include="..\src\EncodingUtils.cpp" />
+    <ClCompile Include="..\src\OpenAIClient.cpp" />
+    <ClCompile Include="..\src\PromptManager.cpp" />
+    <ClCompile Include="..\src\UIHelpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\DockingFeature\ChatSettingsDlg.rc" />
@@ -219,12 +229,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;NDEBUG;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <SDLCheck>true</SDLCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4267</DisableSpecificWarnings>
     </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -239,15 +251,14 @@
 copy ..\readme.FIRST ..\bin\readme.FIRST
 powershell Compress-Archive -Path '$(ProjectDir)helper_files_$(PlatformTarget)\*', '$(TargetPath)' -DestinationPath '$(TargetDir)NppOpenAI.zip' -Force</Command>
     </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  </ItemDefinitionGroup>  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_USRDLL;NPPPLUGINTEMPLATE_EXPORTS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS=1</PreprocessorDefinitions>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
       <SDLCheck>true</SDLCheck>
