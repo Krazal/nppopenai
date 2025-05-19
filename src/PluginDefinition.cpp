@@ -1,80 +1,103 @@
-﻿//this file is part of notepad++
-//Copyright (C)2022 Don HO <don.h@free.fr>
+﻿// This file is part of NppOpenAI, a Notepad++ plugin that integrates OpenAI's API
+// Copyright (C)2022 Don HO <don.h@free.fr>
 //
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either
-//version 2 of the License, or (at your option) any later version.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
 //
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-//You should have received a copy of the GNU General Public License
-//along with this program; if not, write to the Free Software
-//Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "PluginDefinition.h"
 #include "DockingFeature/LoaderDlg.h"
 #include "DockingFeature/ChatSettingsDlg.h"
 #include "menuCmdID.h"
+#include "ConfigManager.h" // Configuration management functions
+#include "PromptManager.h" // System prompts management
+#include "EncodingUtils.h" // UTF-8 / wide-char conversion utilities
+#include "DebugUtils.h"	   // Debug logging functions
+#include "OpenAIClient.h"  // API client wrapper for OpenAI integration
+#include "UIHelpers.h"	   // UI-related functions for menus and dialogs
 
-// For file + cURL + JSON ops
+// Libraries for file operations, cURL, and JSON handling
 #include <wchar.h>
 #include <shlwapi.h>
 #include <curl/curl.h>
-#include <codecvt> // codecvt_utf8
-#include <locale>  // wstring_convert
+#include <codecvt> // Unicode conversion utilities
+#include <locale>  // For wstring_convert
 #include <nlohmann/json.hpp>
 #include <regex>
+#include <iomanip> // For std::setfill and std::setw in debug functions
 
-// For "async" cURL calls
+// For asynchronous API calls
 #include <thread>
+#include <chrono>  // For timing API calls
+#include <fstream> // For file stream operations
+#include <cstdio>  // For FILE* operations in parseInstructionsFile
 
-// Instead of `#include <commctrl.h>` we define the required constants only!
-#define UD_MAXVAL 0x7fff // 32767 (more than enough)
+#include <commctrl.h> // For TaskDialogIndirect and common controls
+#pragma comment(lib, "comctl32.lib")
 
-// For cURL JSON requests/responses
+// Define UpDown control max value constant
+#define UD_MAXVAL 0x7fff // 32767 (more than enough for max tokens)
+
+// Use nlohmann/json for JSON parsing and generation
 using json = nlohmann::json;
 
-// Loader window ("Please wait for OpenAI's response…")
+// Dialog windows for loading animation and settings
 HANDLE _hModule;
 LoaderDlg _loaderDlg;
 ChatSettingsDlg _chatSettingsDlg;
 
-// Config file related vars/constants
-TCHAR iniFilePath[MAX_PATH];
-TCHAR instructionsFilePath[MAX_PATH]; // Aka. file for OpenAI system message
+// Config file paths
+TCHAR iniFilePath[MAX_PATH];		  // Path to main config INI file
+TCHAR instructionsFilePath[MAX_PATH]; // Path to system prompt instructions file
 
-// The plugin data that Notepad++ needs
+// Plugin command array for Notepad++ integration
 FuncItem funcItem[nbFunc];
 
-// The data of Notepad++ that you can use in your plugin commands
+// Notepad++ data structure with handles to main window and Scintilla editor
 NppData nppData;
 
-// Config file related vars
-std::wstring configAPIValue_secretKey        = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // Modify below on update!
-std::wstring configAPIValue_baseURL          = TEXT("https://api.openai.com/"); // Trailing '/' will be erased (if any)
-std::wstring configAPIValue_proxyURL         = TEXT("0"); // 0: don't use proxy. Trailing '/' will be erased (if any)
-std::wstring configAPIValue_model            = TEXT("gpt-4o-mini"); // Recommended default model. NOTE: You can use use "gpt-3.5-turbo", "text-davinci-003" or even "code-davinci-002". Additional models are not tested yet.
-std::wstring configAPIValue_instructions     = TEXT(""); // System message ("instuctions") for the OpenAI API e.g. "Translate the given text into English." or "Create a PHP function based on the received text.". Leave empty to skip.
-std::wstring configAPIValue_temperature      = TEXT("0.7");
-std::wstring configAPIValue_maxTokens        = TEXT("0"); // 0: Skip `max_tokens` API setting. Recommended max. value:  <4.000
-std::wstring configAPIValue_topP             = TEXT("0.8");
-std::wstring configAPIValue_frequencyPenalty = TEXT("0");
-std::wstring configAPIValue_presencePenalty  = TEXT("0");
-bool isKeepQuestion                          = true;
-std::vector<std::wstring> chatHistory        = {};
+// Debug mode flag for detailed logging
+bool debugMode = false;
 
-// Collect selected text by Scintilla here
-TCHAR selectedText[9999];
+// Configuration variables for OpenAI API
+std::wstring configAPIValue_secretKey = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // API key
+std::wstring configAPIValue_baseURL = TEXT("https://api.openai.com/");			// API base URL (trailing '/' gets removed)
+std::wstring configAPIValue_proxyURL = TEXT("0");								// Proxy URL (0 = no proxy)
+std::wstring configAPIValue_model = TEXT("gpt-4o-mini");						// Default LLM model
+std::wstring configAPIValue_instructions = TEXT("");							// System message for API requests
+std::wstring configAPIValue_temperature = TEXT("0.7");							// Randomness parameter
+std::wstring configAPIValue_maxTokens = TEXT("0");								// 0 = no limit, otherwise max token count
+std::wstring configAPIValue_topP = TEXT("0.8");									// Nucleus sampling parameter
+std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition penalty
+std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
+bool isKeepQuestion = true;														// Keep original question in response
+std::vector<std::wstring> chatHistory = {};										// Chat history for context
 
-//
-// Initialize your plugin data here
-// It will be called while plugin loading
+// Buffer for selected text in Scintilla editor (UTF-8)
+static char selectedTextA[9999];
+static std::string lastSelection;
+
+// Prompt management
+static std::vector<Prompt> g_prompts;  // Parsed system prompts from instructions file
+static int g_lastUsedPromptIndex = -1; // Last used prompt index for persistence
+
+// Initialize plugin data and UI components
 void pluginInit(HANDLE hModule)
 {
+	// Initialize common controls for TaskDialog
+	INITCOMMONCONTROLSEX icex{sizeof(icex), ICC_STANDARD_CLASSES | ICC_WIN95_CLASSES};
+	InitCommonControlsEx(&icex);
+
 	_hModule = hModule;
 	_loaderDlg.init((HINSTANCE)_hModule, nppData._nppHandle);
 
@@ -84,704 +107,157 @@ void pluginInit(HANDLE hModule)
 	_chatSettingsDlg.chatSetting_chatLimit = 10;
 }
 
-//
-// Here you can do the clean up, save the parameters (if any) for the next session
-//
+// Clean up resources and save settings on plugin unload
 void pluginCleanUp()
 {
 	wchar_t chatLimitBuffer[6];
 	wsprintfW(chatLimitBuffer, L"%d", _chatSettingsDlg.chatSetting_chatLimit);
 	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), isKeepQuestion ? TEXT("1") : TEXT("0"), iniFilePath);
 	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), _chatSettingsDlg.chatSetting_isChat ? TEXT("1") : TEXT("0"), iniFilePath);
-	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimitBuffer, iniFilePath); // Convert int (9+) to LPCWSTR
+	::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimitBuffer, iniFilePath); // Convert int to LPCWSTR
 }
 
-//
-// Initialization of your plugin commands
-// You should fill your plugins commands here
+// Initialize plugin menus and config paths
 void commandMenuInit()
 {
 	TCHAR configDirPath[MAX_PATH];
 
-	// Get path to the plugin config + instructions (aka. OpenAI system message) file
+	// Get path to the plugin config directory
 	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINSCONFIGDIR, MAX_PATH, (LPARAM)configDirPath);
 
-	// If config path doesn't exist, create it
-	if (PathFileExistsW(configDirPath) == FALSE) // Modified from `PathFileExists()`
+	// Create config directory if it doesn't exist
+	if (PathFileExistsW(configDirPath) == FALSE)
 	{
 		::CreateDirectory(configDirPath, NULL);
 	}
 
-	// Prepare config + instructions (aka. system message) file
+	// Set paths for config and instructions files
 	PathCombine(iniFilePath, configDirPath, TEXT("NppOpenAI.ini"));
 	PathCombine(instructionsFilePath, configDirPath, TEXT("NppOpenAI_instructions"));
 
-	// Load config file content
+	// Load configuration from INI file
 	loadConfig(true);
 
+	//--------------------------------------------//
+	//-- STEP 3. CUSTOMIZE YOUR PLUGIN COMMANDS --//
+	//--------------------------------------------//
+	// with function :
+	// setCommand(int index,                      // zero based number to indicate the order of command
+	//            TCHAR *commandName,             // the command name that you want to see in plugin menu
+	//            PFUNCPLUGINCMD functionPointer, // the symbol of function (function pointer) associated with this command. The body should be defined below. See Step 4.
+	//            ShortcutKey *shortcut,          // optional. Define a shortcut to trigger this command
+	//            bool check0nInit                // optional. Make this menu item be checked visually
+	//            );
 
-    //--------------------------------------------//
-    //-- STEP 3. CUSTOMIZE YOUR PLUGIN COMMANDS --//
-    //--------------------------------------------//
-    // with function :
-    // setCommand(int index,                      // zero based number to indicate the order of command
-    //            TCHAR *commandName,             // the command name that you want to see in plugin menu
-    //            PFUNCPLUGINCMD functionPointer, // the symbol of function (function pointer) associated with this command. The body should be defined below. See Step 4.
-    //            ShortcutKey *shortcut,          // optional. Define a shortcut to trigger this command
-    //            bool check0nInit                // optional. Make this menu item be checked visually
-    //            );
-
-	// Shortcuts for ChatGPT plugin
+	// Define keyboard shortcut Ctrl+Shift+O for askChatGPT command
 	ShortcutKey *askChatGPTKey = new ShortcutKey;
 	askChatGPTKey->_isAlt = false;
 	askChatGPTKey->_isCtrl = true;
 	askChatGPTKey->_isShift = true;
 	askChatGPTKey->_key = 0x4f; // 'O'
 
-	// Plugin menu items
+	// Add all menu items for the plugin
 	setCommand(0, TEXT("Ask &OpenAI"), askChatGPT, askChatGPTKey, false);
-	setCommand(1, TEXT("---"), NULL, NULL, false);
+	setCommand(1, TEXT("---"), NULL, NULL, false); // Separator
 	setCommand(2, TEXT("&Edit Config"), openConfig, NULL, false);
 	setCommand(3, TEXT("Edit &Instructions"), openInsturctions, NULL, false);
 	setCommand(4, TEXT("&Load Config"), loadConfigWithoutPluginSettings, NULL, false);
-	setCommand(5, TEXT("---"), NULL, NULL, false);
+	setCommand(5, TEXT("---"), NULL, NULL, false); // Separator
 	setCommand(6, TEXT("&Keep my question"), keepQuestionToggler, NULL, isKeepQuestion);
-	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by `updateToolbarIcons()` » `updateChatSettings()`
-	setCommand(8, TEXT("---"), NULL, NULL, false);
+	setCommand(7, TEXT("NppOpenAI &Chat Settings"), openChatSettingsDlg, NULL, false); // Text will be updated by updateToolbarIcons
+	setCommand(8, TEXT("---"), NULL, NULL, false);									   // Separator
 	setCommand(9, TEXT("&About"), openAboutDlg, NULL, false);
+	setCommand(10, TEXT("&Toggle Debug Mode"), toggleDebugMode, NULL, debugMode);
 }
 
-// Add/update toolbar icons
+// Add and update toolbar icons in Notepad++
 void updateToolbarIcons()
 {
-
-	// Prepare icons to open Chat Settings
-	int hToolbarBmp = IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT;
-	int hToolbarIcon = IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT;
-	int hToolbarIconDarkMode = IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT_DM;
-	/* // TODO: update toolbar icons on-the-fly (turning chat on/off or reaching chat limit)
-	if (!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0)
-	{
-		hToolbarBmp = IDB_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT;
-		hToolbarIcon = IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT;
-		hToolbarIconDarkMode = IDI_PLUGINNPPOPENAI_TOOLBAR_NO_CHAT_DM;
-	}
-	// */
-
-	// Send Chat Settings icons to Notepad++
-	toolbarIconsWithDarkMode chatSettingsIcons;
-	chatSettingsIcons.hToolbarBmp = ::LoadBitmap((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarBmp));
-	chatSettingsIcons.hToolbarIcon = ::LoadIcon((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarIcon));
-	chatSettingsIcons.hToolbarIconDarkMode = ::LoadIcon((HINSTANCE)_hModule, MAKEINTRESOURCE(hToolbarIconDarkMode));
-	::SendMessage(nppData._nppHandle, NPPM_ADDTOOLBARICON_FORDARKMODE, funcItem[7]._cmdID, (LPARAM)&chatSettingsIcons); // Open Chat Settings
-	updateChatSettings();
+	UIHelpers::updateToolbarIcons();
 }
 
-//
-// Here you can do the clean up (especially for the shortcut)
-//
+// Clean up shortcut keys and dialog resources
 void commandMenuCleanUp()
 {
-	// Don't forget to deallocate your shortcut here
+	// Free shortcut key memory
 	delete funcItem[0]._pShKey;
+
+	// Destroy dialog resources
 	_loaderDlg.destroy();
 	_chatSettingsDlg.destroy();
 }
 
-
-//
-// This function help you to initialize your plugin commands
-//
-bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk, bool check0nInit) 
+// Helper function to set up a menu command
+bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk, bool check0nInit)
 {
-    if (index >= nbFunc)
-        return false;
+	if (index >= nbFunc)
+		return false;
 
-    if (!pFunc)
-        return false;
+	if (!pFunc)
+		return false;
 
-    lstrcpy(funcItem[index]._itemName, cmdName);
-    funcItem[index]._pFunc = pFunc;
-    funcItem[index]._init2Check = check0nInit;
-    funcItem[index]._pShKey = sk;
+	lstrcpy(funcItem[index]._itemName, cmdName);
+	funcItem[index]._pFunc = pFunc;
+	funcItem[index]._init2Check = check0nInit;
+	funcItem[index]._pShKey = sk;
 
-    return true;
+	return true;
 }
-
 
 //----------------------------------------------//
 //-- STEP 4. DEFINE YOUR ASSOCIATED FUNCTIONS --//
 //----------------------------------------------//
 
-// Wrapper function to match the PFUNCPLUGINCMD signature
-void loadConfigWithoutPluginSettings() {
+// Wrapper function to reload configuration without modifying plugin settings
+void loadConfigWithoutPluginSettings()
+{
 	loadConfig(false);
 }
 
-// Load (and create if not found) config file
-void loadConfig(bool loadPluginSettings)
-{
-	wchar_t tbuffer2[256];
-	FILE* instructionsFile;
-
-	// Set up a default plugin config (if necessary)
-	if (::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath) == NULL)
-	{
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; === PLEASE ENTER YOUR OPENAI SECRET API KEY BELOW =="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For faster results, you may use `gpt-4o-mini` model ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == For more information about the [API] settings see the Playground: https://platform.openai.com/playground ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == You can create your secret API key here: https://platform.openai.com/account/api-keys ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Token and pricing info: https://openai.com/api/pricing/ ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Set `max_tokens=0` to skip this setting (infinite for `gpt-3.5-turbo` by default). The recommended value for `code-davinci-002` is 256, but you may increase to 4000 if you get truncated responses. ="), TEXT(""), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("secret_key"), configAPIValue_secretKey.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("temperature"), configAPIValue_temperature.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("max_tokens"), configAPIValue_maxTokens.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("top_p"), configAPIValue_topP.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), configAPIValue_frequencyPenalty.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("API"), TEXT("presence_penalty"), configAPIValue_presencePenalty.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("keep_question"), TEXT("1"), iniFilePath);
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), TEXT("0"), iniFilePath);
-	}
-
-	// Set up the default API URL (v0.2.1)
-	if (::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath) == NULL)
-	{
-		::WritePrivateProfileString(TEXT("API"), TEXT("api_url"), configAPIValue_baseURL.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == The endpoints, like '/v1/chat/completions' will be added to `api_url` automatically. The trailing slash is optional in `api_url`. You should use a query string for custom URL, e.g. 'http://localhost/openai_test.php?endpoint=' ="), TEXT(""), iniFilePath);
-	}
-
-	// Chat preparations + create file for instructions (aka. system message)
-	if (::GetPrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), NULL, tbuffer2, 2, iniFilePath) == NULL)
-	{
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), TEXT("0"), iniFilePath);
-		if ((instructionsFile = _wfopen(instructionsFilePath, L"w, ccs=UNICODE")) != NULL)
-		{
-			fclose(instructionsFile);
-		}
-		else
-		{
-			instructionsFileError(TEXT("The instructions (system message) file could not be created:\n\n"), TEXT("NppOpenAI: unavailable instructions file"));
-		}
-	}
-
-	// Set up the default chat settings (v0.4)
-	if (::GetPrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), NULL, tbuffer2, 2, iniFilePath) == NULL)
-	{
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), TEXT("10"), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Use `instructions` to set a system message for the OpenAI API e.g. 'Translate the given message into English.' or 'Create a PHP function based on the received text.' Optional, leave empty to skip. ="), TEXT(""), iniFilePath);
-	}
-
-	// Set up proxy settings (v0.4.2)
-	if (::GetPrivateProfileString(TEXT("API"), TEXT("proxy_url"), NULL, tbuffer2, 256, iniFilePath) == NULL)
-	{
-		::WritePrivateProfileString(TEXT("API"), TEXT("proxy_url"), configAPIValue_proxyURL.c_str(), iniFilePath);
-		::WritePrivateProfileString(TEXT("INFO"), TEXT("; == Enter a `proxy_url` to use proxy like 'http://127.0.0.1:80'. Optional, enter 0 (zero) to skip. ="), TEXT(""), iniFilePath);
-	}
-
-	// Get instructions (aka. system message) file
-	if ((instructionsFile = _wfopen(instructionsFilePath, L"r, ccs=UNICODE")) != NULL)
-	{
-		wchar_t instructionsBuffer[9999];
-		configAPIValue_instructions = TEXT("");
-		while (fgetws(instructionsBuffer, 9999, instructionsFile))
-		{
-			configAPIValue_instructions += instructionsBuffer;
-		}
-		fclose(instructionsFile);
-	}
-	else
-	{
-		instructionsFileError(TEXT("The instructions (system message) file was not found:\n\n"), TEXT("NppOpenAI: missing instructions file"));
-	}
-
-	// Get API config/settings
-	::GetPrivateProfileString(TEXT("API"), TEXT("secret_key"), NULL, tbuffer2, 256, iniFilePath); // sk-abc123...
-	configAPIValue_secretKey = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("api_url"), NULL, tbuffer2, 256, iniFilePath); // https://...
-	configAPIValue_baseURL = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("proxy_url"), NULL, tbuffer2, 256, iniFilePath); // https://...
-	configAPIValue_proxyURL = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath); // gpt-4o-mini, ...
-	if (std::wstring(tbuffer2) == TEXT("gpt-4")) // Sorry, this was a bad config in v0.3.0.1 ^^'
-	{
-		::WritePrivateProfileString(TEXT("API"), TEXT("model"), configAPIValue_model.c_str(), iniFilePath);
-		::GetPrivateProfileString(TEXT("API"), TEXT("model"), NULL, tbuffer2, 128, iniFilePath); // gpt-4o-mini, ...
-	}
-	configAPIValue_model = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("temperature"), NULL, tbuffer2, 16, iniFilePath); // 0-1
-	configAPIValue_temperature = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("max_tokens"), NULL, tbuffer2, 5, iniFilePath); // 0-4000
-	configAPIValue_maxTokens = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("top_p"), NULL, tbuffer2, 5, iniFilePath);
-	configAPIValue_topP = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), NULL, tbuffer2, 5, iniFilePath);
-	configAPIValue_frequencyPenalty = std::wstring(tbuffer2);
-
-	::GetPrivateProfileString(TEXT("API"), TEXT("presence_penalty"), NULL, tbuffer2, 5, iniFilePath);
-	configAPIValue_presencePenalty = std::wstring(tbuffer2);
-
-	// Get Plugin config/settings
-	// Do NOT load "PLUGIN" section when clicking the Load Config menu item (may cause misconfiguration)
-	if (loadPluginSettings)
-	{
-		isKeepQuestion = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("keep_question"), 1, iniFilePath) != 0);
-		_chatSettingsDlg.chatSetting_isChat = (::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("is_chat"), 0, iniFilePath) != 0);
-		int tmpChatLimit = ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("chat_limit"), _chatSettingsDlg.chatSetting_chatLimit, iniFilePath);
-		_chatSettingsDlg.chatSetting_chatLimit = (tmpChatLimit <= 0)
-			? 1 // Chat limit: min. value
-			: ((tmpChatLimit > UD_MAXVAL)
-				? UD_MAXVAL // Chat limit: max. value
-				: tmpChatLimit);
-
-		// Update chat menu item text (if already initialized)
-		if (funcItem[7]._pFunc)
-		{
-			updateChatSettings();
-		}
-	}
-}
-
-// Call ChatGPT API
-void askChatGPT()
-{
-
-	// Get current Scintilla
-	long currentEdit;
-	::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&currentEdit);
-	HWND curScintilla = (currentEdit == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle;
-
-	// Get current selection
-	size_t selstart  = ::SendMessage(curScintilla, SCI_GETSELECTIONSTART, 0, 0);
-	size_t selend    = ::SendMessage(curScintilla, SCI_GETSELECTIONEND, 0, 0);
-	size_t sellength = selend - selstart;
-
-	// Check if everything is fine
-	bool isSecretKey = configAPIValue_secretKey != TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE");
-	bool isEditable  = !(int)::SendMessage(curScintilla, SCI_GETREADONLY, 0, 0);
-	if (isSecretKey
-		&& isEditable
-		&& selend > selstart
-		&& sellength < 2048
-		&& ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTWORD, 2048, (LPARAM)selectedText) // `curScintilla` is NOK as a handle!
-		)
-	{
-
-		// Data to post via cURL
-		json postData = {
-			{"model",             toUTF8(configAPIValue_model)},
-			{"temperature",       std::stod(configAPIValue_temperature)},
-			{"top_p",             std::stod(configAPIValue_topP)},
-			{"frequency_penalty", std::stod(configAPIValue_frequencyPenalty)},
-			{"presence_penalty",  std::stod(configAPIValue_presencePenalty)}
-		};
-
-		// Add `max_tokens` setting
-		if (std::stoi(configAPIValue_maxTokens) > 0)
-		{
-			postData[toUTF8(TEXT("max_tokens"))] = std::stoi(configAPIValue_maxTokens); // Int!
-		}
-
-		// Update postData + OpenAI URL
-		bool isReady2CallOpenAI = true;
-		std::string OpenAIURL = toUTF8(configAPIValue_baseURL).erase(toUTF8(configAPIValue_baseURL).find_last_not_of("/") + 1);
-		std::string ProxyURL  = toUTF8(configAPIValue_proxyURL).erase(toUTF8(configAPIValue_proxyURL).find_last_not_of("/") + 1);
-
-		// Add system message (instructions)
-		int msgCounter = 0;
-		if (configAPIValue_instructions != TEXT(""))
-		{
-			postData["messages"][0] = {
-				{"role",    "system"},
-				{"content", toUTF8(configAPIValue_instructions)}
-			};
-			msgCounter++;
-		}
-
-		// Add chat history
-		if (_chatSettingsDlg.chatSetting_isChat && _chatSettingsDlg.chatSetting_chatLimit > 0 && chatHistory.size() > 0)
-		{
-
-			// Chat limit reached: should we start a new conversation or cancel OpenAI call?
-			if (static_cast<int>(chatHistory.size()) == _chatSettingsDlg.chatSetting_chatLimit * 2)
-			{
-				char chatNewChatText[100];
-				sprintf(chatNewChatText, "Chat limit reached: %d\n\nDo you want to start A WHOLE NEW conversation?", _chatSettingsDlg.chatSetting_chatLimit);
-				const int result = ::MessageBox(nppData._nppHandle, myMultiByteToWideChar(chatNewChatText), TEXT("OpenAI: Chat limit!"), MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2);
-				if (result == IDYES)
-				{
-					chatHistory = {};
-				}
-				else
-				{
-					isReady2CallOpenAI = false;
-				}
-			}
-
-			// Collect chat history messages
-			if (chatHistory.size() > 0)
-			{
-				for (size_t i = 0; i < chatHistory.size(); i++)
-				{
-					postData["messages"][msgCounter] = {
-						{"role",    (i % 2 == 0) ? "user" : "assistant"}, // The even (and zero) elements were our questions, the odd elements were the OpenAI's answers
-						{"content", toUTF8(chatHistory[i])} // chatHistory DOESN'T contain the instructions (system message)!
-					};
-					msgCounter++;
-				}
-			}
-		}
-		else if ((!_chatSettingsDlg.chatSetting_isChat || _chatSettingsDlg.chatSetting_chatLimit == 0) && chatHistory.size() > 0) // Reset chat history here
-		{
-			chatHistory = {};
-		}
-
-		// Add the current question (selected text)
-		// N2K: Older models (2020–2022) are NO longer supported (text-davinci-003, text-davinci-002, davinci, curie, babbage, ada) -- 2024-12-04
-		postData["messages"][msgCounter] = {
-			{"role",    "user"},
-			{"content", toUTF8(selectedText)}
-		};
-		OpenAIURL += "/v1/chat/completions";
-
-		// Ready to call OpenAI
-		if (isReady2CallOpenAI)
-		{
-
-			// Create/Show a loader dialog ("Please wait..."), disable main window
-			_loaderDlg.doDialog();
-			::EnableWindow(nppData._nppHandle, FALSE);
-
-			// Prepare to start a new thread
-			auto curlLambda = [](std::string OpenAIURL, std::string ProxyURL, json postData, HWND curScintilla)
-			{
-				std::string JSONRequest = postData.dump();
-
-				// Try to call OpenAI and store the results in `JSONBuffer`
-				std::string JSONBuffer;
-				bool isSuccessCall = callOpenAI(OpenAIURL, ProxyURL, JSONRequest, JSONBuffer);
-
-				// Hide loader dialog (`destroy()` doesn't necessary), enable main window
-				_loaderDlg.display(false);
-				::EnableWindow(nppData._nppHandle, TRUE);
-				::SetForegroundWindow(nppData._nppHandle);
-
-				// Return if something went wrong
-				if (!isSuccessCall)
-				{
-					return;
-				}
-
-				/* // TEST: URL/RESPONSE
-				// ::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)JSONBuffer.c_str());
-				TCHAR tmpOpenAIURL[512] = { 0, };
-				std::copy(OpenAIURL.begin(), OpenAIURL.end(), tmpOpenAIURL);
-				::MessageBox(nppData._nppHandle, tmpOpenAIURL, TEXT("OpenAI: URL"), MB_ICONWARNING);
-				// */
-
-				// Parse response
-				try
-				{
-					json JSONResponse = json::parse(JSONBuffer);
-
-					// Handle JSON response
-					if (JSONResponse.contains("choices")
-						&& JSONResponse["choices"].is_array() && JSONResponse.count("choices") > 0
-						&& JSONResponse["choices"][0].contains("message")
-						&& JSONResponse["choices"][0]["message"].contains("content")
-						&& JSONResponse.contains("usage")
-					)
-					{
-						// Get the appropriate response text
-						std::string responseText;
-						JSONResponse["choices"][0]["message"]["content"].get_to(responseText);
-
-						// Replace selected text with response in the main Notepad++ window
-						replaceSelected(curScintilla, responseText);
-
-						// Update chat history (even if NO chat history has been set!)
-						chatHistory.push_back(selectedText);
-						chatHistory.push_back(std::wstring(responseText.begin(), responseText.end()));
-
-						// Save total tokens spent/used so far
-						unsigned int totalTokens = 0;
-						JSONResponse["usage"]["total_tokens"].get_to(totalTokens);
-						totalTokens += ::GetPrivateProfileInt(TEXT("PLUGIN"), TEXT("total_tokens_used"), 0, iniFilePath);
-						std::wstring tmpTotalTokens = std::to_wstring(totalTokens);
-						::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("total_tokens_used"), tmpTotalTokens.c_str(), iniFilePath);
-
-						// Alert: incomplete response OR content filter
-						if (JSONResponse["choices"][0]["finish_reason"] == "length")
-						{
-							::MessageBox(nppData._nppHandle, TEXT("The answer may be incomplete.\n\nAfter closing this message the configuration file will be opened. It's recommended to set `max_tokens=0` to use default (infinite) OpenAI setting OR increase e.g. to 3000.\n\nAfter saving the file don't forget to click Plugins » NppOpenAI » Load config."), TEXT("OpenAI: Incomplete answer"), MB_ICONINFORMATION);
-							openConfig();
-						}
-						else if (JSONResponse["choices"][0]["finish_reason"] == "content_filter") // Categories: hate, hate/threatening, self-harm, sexual, sexual/minors, violence, and violence/graphic.
-						{
-							::MessageBox(nppData._nppHandle, TEXT("The answer has been omitted due to a flag from OpenAI content filters."), TEXT("OpenAI: Moderation"), MB_ICONWARNING);
-						}
-					}
-					else if (JSONResponse.contains("error"))
-					{
-						std::string errorResponse;
-						TCHAR errorResponseWide[512] = { 0, };
-						JSONResponse["error"]["message"].get_to(errorResponse);
-						std::copy(errorResponse.begin(), errorResponse.end(), errorResponseWide);
-						::MessageBox(nppData._nppHandle, errorResponseWide, TEXT("OpenAI: Error response"), MB_ICONEXCLAMATION);
-					}
-					else if (JSONResponse.contains("choices")
-						&& JSONResponse["choices"].is_array() && JSONResponse.count("choices") > 0
-						&& !JSONResponse["choices"][0].contains("message"))
-					{
-						::MessageBox(nppData._nppHandle, TEXT("The 'choices' in the response does not contain a 'message' key. Is it possible that you are trying to use a legacy OpenAI API?"), TEXT("OpenAI: Missing message"), MB_ICONEXCLAMATION);
-					}
-					else
-					{
-						::MessageBox(nppData._nppHandle, TEXT("Missing/empty 'choices' and/or 'usage' from JSON response!"), TEXT("OpenAI: Invalid answer"), MB_ICONEXCLAMATION);
-					}
-				}
-				catch (json::parse_error& ex)
-				{
-					std::string responseException = ex.what();
-					std::string responseText      = JSONBuffer.c_str();
-					responseText += "\n\n" + responseException;
-					replaceSelected(curScintilla, responseText);
-					::MessageBox(nppData._nppHandle, TEXT("Invalid or non-JSON response!\n\nSee details in the main window"), TEXT("OpenAI: Invalid response"), MB_ICONERROR);
-				}
-			};
-
-			std::thread curlThread(curlLambda, OpenAIURL, ProxyURL, postData, curScintilla);
-			curlThread.detach();
-		}
-	}
-	else if (!isSecretKey)
-	{
-		openConfig();
-		::MessageBox(nppData._nppHandle, TEXT("1. Please enter your OpenAI private key\n\
-2. Save the NppOpenAI.ini file\n\
-3. Load NppOpenAI Config from Plugins » NppOpenAI » Load Config"), TEXT("OpenAI: Missing private key"), MB_ICONINFORMATION);
-	}
-	else if (!isEditable)
-	{
-		::MessageBox(nppData._nppHandle, TEXT("This file is not editable"), TEXT("OpenAI: Invalid file"), MB_ICONERROR);
-	}
-	else if (selend <= selstart)
-	{
-		::MessageBox(nppData._nppHandle, TEXT("Please select a text first"), TEXT("OpenAI: Missing question"), MB_ICONWARNING);
-	}
-	else if (sellength >= 2048)
-	{
-		::MessageBox(nppData._nppHandle, TEXT("The selected text is too long. Please select a text shorter than 2048 characters"), TEXT("OpenAI: Invalid question"), MB_ICONWARNING);
-	}
-	else
-	{
-		::MessageBox(nppData._nppHandle, TEXT("Please try to select a question first"), TEXT("OpenAI: Unknown error"), MB_ICONERROR);
-	}
-}
-
-// Open config file
+// Open the plugin configuration INI file
 void openConfig()
 {
-	::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)iniFilePath);
+	openConfigFile();
 }
 
-// Open insturctions file
+// Open the system instructions/prompts file
 void openInsturctions()
 {
-	::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)instructionsFilePath);
-	::MessageBox(nppData._nppHandle, TEXT("You can give instructions (system message) to OpenAI here, e.g.: Translate the received text into English.\n\n\
-Leave the file empty to skip the instructions.\n\n\
-After saving this file, don't forget to click Plugins » NppOpenAI » Load Config to apply the changes."), TEXT("NppOpenAI: Instructions"), MB_ICONINFORMATION);
+	openInstructionsFile();
 }
 
-// Toggle "Keep my question" menu item
+// Main function to send the current selection to OpenAI's API
+void askChatGPT()
+{
+	// Call the implementation in the OpenAIClient namespace
+	OpenAIClientImpl::askChatGPT();
+}
+
+// Toggle the "Keep my question" menu item state
 void keepQuestionToggler()
 {
-	isKeepQuestion = !isKeepQuestion;
-	::CheckMenuItem(::GetMenu(nppData._nppHandle), funcItem[6]._cmdID, MF_BYCOMMAND | (isKeepQuestion ? MF_CHECKED : MF_UNCHECKED));
+	UIHelpers::keepQuestionToggler();
 }
 
-// Open Chat Settings dialog
+// Open the chat settings dialog
 void openChatSettingsDlg()
 {
+	// Direct call to ChatSettingsDlg to avoid UIHelpers namespace issue
 	_chatSettingsDlg.doDialog();
 }
 
-// Update 
+// Update chat settings menu text and save to INI if needed
 void updateChatSettings(bool isWriteToFile)
 {
-	HMENU chatMenu = ::GetMenu(nppData._nppHandle);
-	MENUITEMINFOW menuItemInfo{};
-	menuItemInfo.cbSize = sizeof(MENUITEMINFOW);
-	menuItemInfo.fMask = MIIM_TYPE | MIIM_DATA;
-	// if (!isChat || !chatLimit)
-	if (!_chatSettingsDlg.chatSetting_isChat || !_chatSettingsDlg.chatSetting_chatLimit)
-	{
-		menuItemInfo.dwTypeData = TEXT("&Chat: off");
-	}
-	else
-	{
-		wchar_t chatLimitNewBuffer[32];
-		wsprintfW(chatLimitNewBuffer, L"&Chat limit: %d", _chatSettingsDlg.chatSetting_chatLimit);
-		// wsprintfW(chatLimitNewBuffer, L"&Chat limit: %d", chatLimit);
-		menuItemInfo.dwTypeData = chatLimitNewBuffer;
-	}
-	SetMenuItemInfoW(chatMenu, funcItem[7]._cmdID, MF_STRING, &menuItemInfo); // Earlier: MF_BYCOMMAND | MF_STRING
-
-	// Update Profile (INI) settings
-	if (isWriteToFile)
-	{
-		wchar_t chatLimitBuffer[6];
-		wsprintfW(chatLimitBuffer, L"%d", _chatSettingsDlg.chatSetting_chatLimit);
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_chat"), _chatSettingsDlg.chatSetting_isChat ? TEXT("1") : TEXT("0"), iniFilePath);
-		::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("chat_limit"), chatLimitBuffer, iniFilePath); // Convert int (9+) to LPCWSTR
-	}
+	UIHelpers::updateChatSettings(isWriteToFile);
 }
 
-// Open About dialog
+// Show the About dialog with version information
 void openAboutDlg()
 {
-	char about[255];
-	sprintf(about, "\
-OpenAI (aka. ChatGPT) plugin for Notepad++ v%s by Richard Stockinger\n\n\
-This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
-", NPPOPENAI_VERSION, LIBCURL_VERSION, NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
-	::MessageBox(nppData._nppHandle, myMultiByteToWideChar(about), TEXT("About"), MB_OK);
+	UIHelpers::openAboutDlg();
 }
-
-
 
 /*** HELPER FUNCTIONS ***/
 
-
-// Call OpenAI via cURL
-bool callOpenAI(std::string OpenAIURL, std::string ProxyURL, std::string JSONRequest, std::string& JSONResponse)
-{
-
-	// Prepare cURL
-	CURL* curl;
-	CURLcode res;
-	curl_global_init(CURL_GLOBAL_ALL); // In windows, this will init the winsock stuff
-
-	// Get a cURL handle
-	curl = curl_easy_init();
-	if (!curl)
-	{
-		return false;
-	}
-
-	// Get the CA bundle file for cURL
-	TCHAR CACertFilePath[MAX_PATH];
-	const TCHAR CACertFileName[] = TEXT("NppOpenAI\\cacert.pem");
-	::SendMessage(nppData._nppHandle, NPPM_GETPLUGINHOMEPATH, MAX_PATH, (LPARAM)CACertFilePath); // TODO: optimize path length (https://npp-user-manual.org/docs/plugin-communication/#nppm-getpluginhomepath)
-	PathAppend(CACertFilePath, CACertFileName); // E.g. "C:\Program Files (x86)\Notepad++\plugins\NppOpenAI\cacert.pem"
-
-	// Prepare cURL SetOpts
-	struct curl_slist* headerList = NULL;
-	std::wstring tmpBearer = TEXT("Authorization: Bearer ") + configAPIValue_secretKey;
-	headerList = curl_slist_append(headerList, toUTF8(tmpBearer).c_str());
-	headerList = curl_slist_append(headerList, "Content-Type: application/json");
-	char userAgent[255];
-	sprintf(userAgent, "NppOpenAI/%s", NPPOPENAI_VERSION); // E.g. "NppOpenAI/0.2"
-
-	// cURL SetOpts
-	curl_easy_setopt(curl, CURLOPT_URL, OpenAIURL.c_str()); // E.g. "https://api.openai.com/v1/completions"
-	if (ProxyURL != "" && ProxyURL != "0")
-	{
-		curl_easy_setopt(curl, CURLOPT_PROXY, ProxyURL.c_str());
-	}
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L); // Corp. proxies etc.
-	curl_easy_setopt(curl, CURLOPT_CAINFO, toUTF8(CACertFilePath).c_str());
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, JSONRequest.c_str());
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &JSONResponse);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIcURLCallback); // Send all data to this function
-
-	// Perform the request, res will get the return code
-	res = curl_easy_perform(curl);
-	bool isCurlOK = (res == CURLE_OK);
-
-	// Handle response + check for errors
-	if (!isCurlOK)
-	{
-		char curl_error[512];
-		sprintf(curl_error, "An error occurred while accessing the OpenAI server:\n%s", curl_easy_strerror(res));
-		::MessageBox(nppData._nppHandle, myMultiByteToWideChar(curl_error), TEXT("OpenAI: Connection Error"), MB_ICONERROR);
-	}
-
-	// Cleanup (including headers)
-	curl_easy_cleanup(curl);
-	curl_slist_free_all(headerList);
-	return isCurlOK;
-}
-
-// Handle cURL callback
-static size_t OpenAIcURLCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-	((std::string*)userp)->append((char*)contents, size * nmemb);
-	return size * nmemb;
-}
-
-// Replace selected text with the given string (OpenAI response)
-void replaceSelected(HWND curScintilla, std::string responseText)
-{
-
-	// Update response text
-	responseText.erase(0, responseText.find_first_not_of("\n"));
-
-	// Update line endings
-	std::string selectedAndResponseEOLs = "\n\n";
-	switch ((int)::SendMessage(curScintilla, SCI_GETEOLMODE, 0, 0))
-	{
-	case SC_EOL_CRLF: // 0
-		responseText = std::regex_replace(responseText, std::regex("\n"), "\r\n");
-		selectedAndResponseEOLs = "\r\n\r\n";
-		break;
-	case SC_EOL_CR: // 1
-		responseText = std::regex_replace(responseText, std::regex("\n"), "\r");
-		selectedAndResponseEOLs = "\r\r";
-		break;
-	}
-	if (isKeepQuestion)
-	{
-		responseText = toUTF8(selectedText) + selectedAndResponseEOLs + responseText;
-	}
-	char* tmpResponseText = &responseText[0];
-
-	// Replace selection with OpenAI response (including original question -- optional)
-	::SendMessage(curScintilla, SCI_REPLACESEL, 0, (LPARAM)tmpResponseText);
-}
-
-// Error message when the instructions (aka. assinstant) file is unavailable
-void instructionsFileError(TCHAR* errorMessage, TCHAR* errorCaption)
-{
-	const size_t errorMessageSize = 256 + MAX_PATH;
-	_tcscat_s(errorMessage, errorMessageSize, instructionsFilePath);
-	::MessageBox(nppData._nppHandle, errorMessage, errorCaption, MB_ICONERROR);
-}
-
-// Convert std::wstring to std::string
-std::string toUTF8(std::wstring wide_string)
-{
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_conv; // Emojis are supported too!
-	return utf8_conv.to_bytes(wide_string);
-}
-
-// Convert chars e.g. for Menu Items, MessageBoxes etc.
-TCHAR* myMultiByteToWideChar(char* fromChar)
-{
-	int cchWideChar = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, fromChar, -1, NULL, 0);
-	TCHAR* toWide = new TCHAR[cchWideChar]{ 0, };
-	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, fromChar, -1, toWide, cchWideChar);
-	return toWide;
-}
+// All helper functions are now in EncodingUtils.cpp, DebugUtils.cpp, OpenAIClient.cpp, and UIHelpers.cpp

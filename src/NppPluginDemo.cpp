@@ -1,111 +1,161 @@
-//this file is part of notepad++
-//Copyright (C)2022 Don HO <don.h@free.fr>
-//
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either
-//version 2 of the License, or (at your option) any later version.
-//
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-//
-//You should have received a copy of the GNU General Public License
-//along with this program; if not, write to the Free Software
-//Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// filepath: c:\Users\andre\VSCode Workspace\nppopenai\src\NppPluginDemo.cpp
+/**
+ * NppPluginDemo.cpp - Entry point for NppOpenAI plugin
+ *
+ * This file contains the plugin's entry point and exports the standard
+ * Notepad++ plugin interface functions that are required for integration
+ * with the editor. These functions handle plugin lifecycle events such as
+ * initialization, command setup, and cleanup.
+ *
+ * Copyright (C)2022 Don HO <don.h@free.fr>
+ */
 
 #include "PluginDefinition.h"
 
 extern FuncItem funcItem[nbFunc];
 extern NppData nppData;
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID /*lpReserved*/)
+/**
+ * DLL entry point
+ *
+ * This function is called by Windows when the DLL is loaded or unloaded.
+ * It handles plugin initialization and cleanup.
+ *
+ * @param hModule Handle to the DLL module
+ * @param reasonForCall Reason why this function is being called (attach/detach)
+ * @param lpReserved Reserved, not used
+ * @return TRUE if successful, FALSE otherwise
+ */
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD reasonForCall, LPVOID /*lpReserved*/)
 {
-	try {
-
+	try
+	{
 		switch (reasonForCall)
 		{
-			case DLL_PROCESS_ATTACH:
-				pluginInit(hModule);
-				break;
+		case DLL_PROCESS_ATTACH:
+			// Initialize plugin with given module handle
+			pluginInit(hModule);
+			break;
 
-			case DLL_PROCESS_DETACH:
-				pluginCleanUp();
-				break;
+		case DLL_PROCESS_DETACH:
+			// Clean up resources when plugin is unloaded
+			pluginCleanUp();
+			break;
 
-			case DLL_THREAD_ATTACH:
-				break;
+		case DLL_THREAD_ATTACH:
+			break;
 
-			case DLL_THREAD_DETACH:
-				break;
+		case DLL_THREAD_DETACH:
+			break;
 		}
 	}
-	catch (...) { return FALSE; }
+	catch (...)
+	{
+		return FALSE;
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
-
+/**
+ * Sets Notepad++ data for the plugin
+ *
+ * This is the first function Notepad++ calls when loading the plugin.
+ * It provides handles to the main window and Scintilla editor instances.
+ *
+ * @param notpadPlusData Structure containing Notepad++ window handles
+ */
 extern "C" __declspec(dllexport) void setInfo(NppData notpadPlusData)
 {
 	nppData = notpadPlusData;
 	commandMenuInit();
 }
 
-extern "C" __declspec(dllexport) const TCHAR * getName()
+/**
+ * Gets the name of the plugin
+ *
+ * This function returns the name of the plugin as defined in PluginDefinition.h.
+ *
+ * @return Plugin name as a TCHAR string
+ */
+extern "C" __declspec(dllexport) const TCHAR *getName()
 {
 	return NPP_PLUGIN_NAME;
 }
 
-extern "C" __declspec(dllexport) FuncItem * getFuncsArray(int *nbF)
+/**
+ * Gets the array of plugin commands
+ *
+ * This function provides Notepad++ with the list of commands that the plugin
+ * supports. Each command is represented as a FuncItem structure.
+ *
+ * @param nbF Pointer to an integer to store the number of commands
+ * @return Array of FuncItem structures
+ */
+extern "C" __declspec(dllexport) FuncItem *getFuncsArray(int *nbF)
 {
 	*nbF = nbFunc;
 	return funcItem;
 }
 
-
+/**
+ * Handles notifications from Notepad++
+ *
+ * This function is called by Notepad++ to notify the plugin of various events
+ * such as toolbar modification or shutdown.
+ *
+ * @param notifyCode Notification code from Notepad++
+ */
 extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode)
 {
-	switch (notifyCode->nmhdr.code) 
+	switch (notifyCode->nmhdr.code)
 	{
+	case NPPN_TBMODIFICATION:
+	{
+		// Update toolbar icons when toolbar is modified
+		updateToolbarIcons();
+	}
+	break;
 
-		case NPPN_TBMODIFICATION:
-		{
-			updateToolbarIcons();
-		}
-		break;
+	case NPPN_SHUTDOWN:
+	{
+		// Clean up resources when Notepad++ is shutting down
+		commandMenuCleanUp();
+	}
+	break;
 
-		case NPPN_SHUTDOWN:
-		{
-			commandMenuCleanUp();
-		}
-		break;
-
-		default:
-			return;
+	default:
+		return;
 	}
 }
 
-
-// Here you can process the Npp Messages 
-// I will make the messages accessible little by little, according to the need of plugin development.
-// Please let me know if you need to access to some messages :
-// http://sourceforge.net/forum/forum.php?forum_id=482781
-//
+/**
+ * Processes custom messages sent to the plugin
+ *
+ * This function can be used to handle custom Windows messages sent to the plugin.
+ * Currently, it does not process any messages.
+ *
+ * @param Message The message identifier
+ * @param wParam Additional message information
+ * @param lParam Additional message information
+ * @return TRUE if the message was processed, FALSE otherwise
+ */
 extern "C" __declspec(dllexport) LRESULT messageProc(UINT /*Message*/, WPARAM /*wParam*/, LPARAM /*lParam*/)
-{/*
-	if (Message == WM_MOVE)
-	{
-		::MessageBox(NULL, "move", "", MB_OK);
-	}
-*/
+{
 	return TRUE;
 }
 
 #ifdef UNICODE
+/**
+ * Checks if the plugin supports Unicode
+ *
+ * This function is called by Notepad++ to determine if the plugin supports
+ * Unicode. It always returns TRUE for this plugin.
+ *
+ * @return TRUE if the plugin supports Unicode
+ */
 extern "C" __declspec(dllexport) BOOL isUnicode()
 {
-    return TRUE;
+	return TRUE;
 }
-#endif //UNICODE
+#endif // UNICODE

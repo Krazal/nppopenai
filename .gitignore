@@ -84,3 +84,17 @@ $RECYCLE.BIN/
 *.d
 *.o
 
+
+# Ignore the bin64 folder (used for distributions)
+bin64/
+bin32/
+
+README_PRIVATE.md
+*.exp
+*.lib
+
+// exclude the vscode workspace settings
+.vscode/
+vs.proj/
+
+

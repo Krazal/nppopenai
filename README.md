@@ -1,51 +1,160 @@
-# NppOpenAI — OpenAI (aka. ChatGPT) plugin for Notepad++
-A simple Notepad++ plugin to communicate with OpenAI directly from your favorite code editor.
+```
+  _   _             ___                   _    ___
+ | \ | |_ __  _ __ / _ \ _ __   ___ _ __ / \  |_ _|
+ |  \| | '_ \| '_ \ | | | '_ \ / _ \ '__/ _ \  | |
+ | |\  | |_) | |_) | |_| | |_) |  __/ | / ___ \ | |
+ |_| \_| .__/| .__/ \___/| .__/ \___|_|/_/   \_\___|
+       |_|   |_|         |_|
+```
 
-How it works?
--------------
+# NppOpenAI — AI Augmentation Without Leaving the Keyboard
 
-Simply select your text in Notepad++, press `Ctrl + Shift + O`, and you'll see the AI generated response in seconds. (Additional settings required.) Two examples: "Please create a Fibonacci function in PHP"; "Mi az árvíztűrő tükörfúrógép?" (Hungarian Unicode test). This plugin requires an active internet connection and an OpenAI registration / API key (handles it confidentially).
+> "Because true nerds shouldn't have to reach for the mouse" 🧠⚡
 
-Can I install (update) it manually?
------------------------------------
+Transform your Notepad++ into a command-line style AI assistant that responds at the speed of thought. Built for developers who value efficiency and keyboard-driven workflows.
 
-Sure! If the latest release here in GitHub is newer than the NppOpenAI plugin in the Plugin Manager, [follow this guide](https://github.com/Krazal/nppopenai/wiki/FAQ#question-ive-an-old-buggy-nppopenai-release-how-should-i-update) to install it manually.
+## ⌨️ Keyboard-First Workflow
 
-How to configure?
------------------
+```bash
+# SELECT TEXT -> Ctrl+Shift+O -> GET RESULT
+# No menus. No dialogs. No mouse.
+```
 
-**To remove your original question/request,** please uncheck Plugins » NppOpenAI » Keep my question option.
+![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)
 
-For additional settings, please open the configuration file (`NppOpenAI.ini`) from Plugins » NppOpenAI » Edit Config, and edit the `[API]` section. For available plugin settings, see [OpenAI API Reference](https://platform.openai.com/docs/api-reference/completions). You can track your token usage via the `total_tokens_used` setting in `[PLUGIN]` section.
+### Pure Text Power
 
-**To send a system message** (I call this “instructions”) along with your question, please open the instructions file (`NppOpenAI_instructions`) from Plugins » NppOpenAI » Edit Instructions. How to use? For example:
-* Click Plugins » NppOpenAI » Edit Instructions
-* Enter any instruction, like: Please translate the received text into English.
-* Save the file
-* Click Plugins » NppOpenAI » Load Config
-* Open an empty file and enter e.g. Kérlek, mondd, hogy ez egy teszt
-* Select the text and press `Ctrl + Shift + O`
-* You should get the following result: “Please, say that this is a test”, instead of “Ez egy teszt” (“This is a test”).
+- **Code Generation**: `Ctrl+Shift+O` on a comment → get working code
+- **Instant Translation**: `Ctrl+Shift+O` on foreign text → English output
+- **Document Analysis**: `Ctrl+Shift+O` on long text → concise summary
+- **Command Memory**: Your last used prompt stays active - chain commands efficiently
+- **Keyboard Navigation**: Pop-up remembers your last prompt, navigate with arrow keys, activate with Enter - zero mouse required
 
-If you don't want to use “instructions”, please leave the `NppOpenAI_instructions` file empty.
+## 🖥️ Terminal-Style Usage Examples
 
-After editing and saving `NppOpenAI.ini` and/or `NppOpenAI_instructions`, please always load your settings: Plugins menu » NppOpenAI » Load Config.
+```
+# Quick code fix:
+// BUG: This function sometimes returns NaN
+function add(a,b) { return a+b }
+[SELECT] → [Ctrl+Shift+O]
+```
 
-**To enable chat,** please click Plugins » NppOpenAI » Chat: off menu item, and check in the Use chat. You may also increase/decrease chat limit for optimal token usage. To turn off chat, please click Plugins » NppOpenAI » Chat limit: [numeric limit] and turn off Use chat.
+```
+# Fast translation:
+Denne tekst skal oversættes hurtigt.
+[SELECT] → [Ctrl+Shift+O]
+```
 
-The chat can even be used in conjunction with the “instructions”. However, the chat history to be displayed is not (yet) available.
+```
+# Drop-in YAML repair workflow:
+1. Ctrl+V (paste problematic YAML)
+2. Ctrl+A (select all)
+3. Ctrl+Shift+O
+=> BOOM! Correctly formatted YAML replaces broken content
+```
 
-Have a question?
-----------------
+```
+# Generate SQL from natural language:
+Create a query that finds all users who logged in this week
+[SELECT] → [Ctrl+Shift+O]
+```
 
-If you experience an error or are interested in suggestions, please visit the [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ)!
+```
+# Complete fix-and-paste workflow:
+1. Ctrl+V (paste problematic code/config)
+2. Ctrl+A (select all)
+3. Ctrl+Shift+O (fix automatically)
+4. Ctrl+A (select fixed content)
+5. Ctrl+C (copy solution)
+6. Ctrl+V (paste back in source system)
+=> Job done in seconds!
+```
 
-Additional information
-----------------------
+## 🔧 Power User Configuration
 
-Some help how to build cURL with OpenSSL and zlib:
-https://developers.refinitiv.com/en/article-catalog/article/how-to-build-openssl--zlib--and-curl-libraries-on-windows
+Edit your `NppOpenAI.ini` directly for maximum control:
 
-After manually building this plugin, please copy `*.dll` and `cacert.pem` (source: https://curl.se/ca/cacert.pem) files from `vs.proj/helper_files_[platform]` directory to your Notepad++ plugin folder (`C:\Program Files (x86)\Notepad++\plugins\NppOpenAI` by default).
+```ini
+[API]
+secret_key=sk-...
+model=gpt-4o-mini
+temperature=0.7
 
-ARM platforms are not supported.
+[PLUGIN]
+keep_question=0  # Replace text vs. append responses
+```
+
+## ⚡ Keyboard Efficiency Features
+
+| Shortcut                                   | Action                                         | Time Saved                     |
+| ------------------------------------------ | ---------------------------------------------- | ------------------------------ |
+| **Ctrl+Shift+O**                           | Process selected text                          | ~15s vs. copy/paste to browser |
+| **Arrow keys + Enter**                     | Navigate and select prompts without mouse      | ~8s per prompt selection       |
+| **Ctrl+V, Ctrl+A, Ctrl+Shift+O, Ctrl+A+C** | Complete paste→fix→copy workflow               | ~45s per troubleshooting cycle |
+| **Last prompt memory**                     | Automatic reuse of previous prompt             | ~5s per operation              |
+| **Context-aware responses**                | Get exactly what you need                      | Countless minutes              |
+| **Replace-mode**                           | Responses replace queries for seamless editing | ~3s per edit                   |
+
+## 📦 Quick Setup for the Impatient
+
+```bash
+1. Plugins → NppOpenAI → Edit Config
+2. secret_key=YOUR_API_KEY
+3. Ctrl+S
+4. Ready to use
+```
+
+## 🧙‍♂️ Custom Prompt Wizardry
+
+Create keyboard-accessible AI personas in your instructions file:
+
+```ini
+[Prompt:sql]
+Convert this description into a PostgreSQL query.
+
+[Prompt:cpp]
+Optimize this C++ code for performance.
+
+[Prompt:regex]
+Create a regular expression that matches the described pattern.
+```
+
+Check out our [advanced prompt examples](INSTRUCTIONS_EXAMPLES.txt) for more sophisticated AI interactions, including technical writing, code fixing, and Node-RED function development.
+
+## 💾 Power User Techniques
+
+- **Keep instructions file open** in one tab for reference
+- **Toggle replacement mode** to seamlessly integrate AI into editing
+- **Chain prompts** for multi-step processing
+- **Watch token count** in the status to optimize prompts
+
+## 🔄 The Rapid-Fire AI Workflow
+
+> _"When keyboard warriors meet AI acceleration"_
+
+Picture this: A senior developer faces a complex refactoring task involving legacy code in an unfamiliar language, documentation that needs translation, and configuration files that require debugging.
+
+Instead of context-switching between browsers, translators, and documentation sites, they unleash the full power of NppOpenAI with Notepad++'s native features:
+
+1. **Multi-Tab AI Orchestra**:  
+   With config files in one tab, code in another, and docs in a third, they rapidly switch contexts without losing focus
+2. **Prompt Chaining Sequence**:
+
+   ```
+   [Tab 1] Select error message → Ctrl+Shift+O (Fix) → Ctrl+Z (Compare) → Ctrl+Y (Reapply)
+   [Tab 2] Select foreign comment → Ctrl+Shift+O (Translate) → Arrow down → Enter (Switch prompt) → Ctrl+Shift+O (Analyze)
+   [Tab 3] Select entire file → Ctrl+Shift+O (Reformat) → Select section → Ctrl+Shift+O (Optimize)
+   ```
+
+3. **Trial and Error Without Fear**:  
+   When one AI approach doesn't yield perfect results, Ctrl+Z steps back, then a slight prompt adjustment with arrow keys and Enter tries a new angle—all without touching the mouse or losing context
+
+In minutes, what would have taken hours of research and context-switching is done. The developer has translated documentation, fixed configuration errors, and optimized code—all through rapid-fire keyboard commands, fluid tab navigation, and AI augmentation working in perfect harmony.
+
+![NppOpenAI in action](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
+
+---
+
+<div align="center">
+<code>while(coding){ useAI(); improveCode(); keepHands(ON_KEYBOARD); }</code>
+</div>
