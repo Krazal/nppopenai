@@ -1,6 +1,6 @@
 # NppOpenAI — Bring AI Power to Notepad++
 
-Transform your Notepad++ experience with direct access to OpenAI's powerful AI models. Ask questions, translate text, generate code, summarize content, and more - without ever leaving your editor.
+Transform your Notepad++ experience with direct access to OpenAI’s powerful AI models—unleash your coding potential with swift code generation, on-demand translations, and intelligent summaries right inside your favorite editor. Develop faster, dream bigger!
 
 ![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
 
@@ -9,7 +9,7 @@ Transform your Notepad++ experience with direct access to OpenAI's powerful AI m
 1. Select text in Notepad++
 2. Press `Ctrl + Shift + O`
 3. Get AI-generated responses instantly!
-   > A loading dialog will appear, displaying the selected AI model (e.g. "gpt-4o-mini response") with a spinner animation while waiting for the reply.
+   > A loading dialog will appear, spinning with anticipation as your chosen AI model tackles questions, translations, and more. Get ready to supercharge your workflow!
 
 ## 🚀 What Can You Do With NppOpenAI?
 
@@ -35,7 +35,7 @@ Select long texts, press `Ctrl+Shift+O`, and get concise summaries that retain t
 
 ### 🤔 Get Answers to Complex Questions
 
-Whether it's technical explanations, algorithms, or creative ideas - just ask!
+Whether it’s refactoring tricky code, brainstorming for your next project, or exploring new concepts—NppOpenAI has your back. Join a global community of devs discovering limitless possibilities with AI assistance at their fingertips!
 
 ## 🛠️ Setup Made Simple
 
@@ -136,6 +136,46 @@ For longer documents, retain the existing structure in the summary but condensed
 - Pay special attention to grammar and style to ensure the summarized text is easy to read and understand.
 ```
 
+### English Technical Writing
+
+```ini
+[Prompt:Write_in_En]
+Produce grammatically correct, well-structured English text for IT/Cybersecurity contexts.
+
+# Output Format
+Provide the text directly in English without extra commentary.
+
+# Notes
+- Maintain technical fidelity and clarity
+- Use standardized cybersecurity terminology (NIST, ISO 27001)
+```
+
+### Italian Technical Writing
+
+```ini
+[Prompt:Write_in_It]
+Produci testo italiano chiaro e tecnicamente accurato per contesti IT/Cybersecurity.
+
+# Formato di Output
+Fornisci direttamente il testo in italiano senza commenti aggiuntivi.
+
+# Note
+- Rispetta la terminologia standardizzata (GDPR, Clusit, NIS2)
+- Mantieni la struttura e l’accuratezza del contenuto originale
+```
+
+### Node-RED Flow Assistant
+
+```ini
+[Prompt:Node-RED]
+You are a Node-RED expert. Generate production-ready function node code.
+
+# Core Guidelines
+1. Use async operations carefully
+2. Handle errors with structured payloads
+3. Only reference Setup Tab modules, never use require()
+```
+
 ## 🆘 Need Help?
 
 Have a question or experiencing an issue? Visit our [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ) for solutions to common problems.
@@ -144,4 +184,4 @@ Have a question or experiencing an issue? Visit our [FAQ page](https://github.co
 
 **💡 Pro Tip**: Keep your instructions file open in one tab while working in another for seamless AI assistance without disrupting your workflow.
 
-Unleash the power of AI directly in your favorite editor with NppOpenAI!
+Unleash the power of AI in your favorite editor with NppOpenAI—where creativity meets productivity anytime, anywhere!
