@@ -1,8 +1,6 @@
 # NppOpenAI — Bring AI Power to Notepad++
 
-Transform your Notepad++ experience with direct access to OpenAI’s powerful AI models—unleash your coding potential with swift code generation, on-demand translations, and intelligent summaries right inside your favorite editor. Develop faster, dream bigger!
-
-![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
+Transform your Notepad++ experience with direct access to OpenAI’s powerful AI models—push your editing boundaries with swift code generation, cunning translations, and lightning-fast summaries. Let your inner nerd thrive and take your coding adventures to the next level!
 
 ## ✨ Quick Start
 
@@ -93,6 +91,14 @@ Enable chat mode to maintain conversation context between requests:
 - **Adjust Response Style**: Modify temperature and other parameters in the config file
 - **Track Token Usage**: Monitor your API usage in the [PLUGIN] section of NppOpenAI.ini
 
+### Replace or Keep Your Questions
+
+Easily choose whether the AI’s answer should replace your original question in the editor or appear below it. Go to Plugins » NppOpenAI » Keep my question to toggle this preference, enabling more flexible AI-aided editing.
+
+### Attention to Detail
+
+NppOpenAI remembers your last used prompt, so you can quickly reuse or change it without losing focus. Navigating these prompts without a mouse is also possible: use the keyboard-friendly interface to select prompts and streamline your workflow.
+
 ## 📚 Example Prompt Templates
 
 ### Translation Assistant
@@ -140,7 +146,7 @@ For longer documents, retain the existing structure in the summary but condensed
 
 ```ini
 [Prompt:Write_in_En]
-Produce grammatically correct, well-structured English text for IT/Cybersecurity contexts.
+Produce grammatically correct, well-structured English text for IT/Cybersecurity contexts. You may also handle translation or enhance content flow as needed. Adapt background or mood to user requirements.
 
 # Output Format
 Provide the text directly in English without extra commentary.
@@ -148,20 +154,6 @@ Provide the text directly in English without extra commentary.
 # Notes
 - Maintain technical fidelity and clarity
 - Use standardized cybersecurity terminology (NIST, ISO 27001)
-```
-
-### Italian Technical Writing
-
-```ini
-[Prompt:Write_in_It]
-Produci testo italiano chiaro e tecnicamente accurato per contesti IT/Cybersecurity.
-
-# Formato di Output
-Fornisci direttamente il testo in italiano senza commenti aggiuntivi.
-
-# Note
-- Rispetta la terminologia standardizzata (GDPR, Clusit, NIS2)
-- Mantieni la struttura e l’accuratezza del contenuto originale
 ```
 
 ### Node-RED Flow Assistant
@@ -179,6 +171,8 @@ You are a Node-RED expert. Generate production-ready function node code.
 ## 🆘 Need Help?
 
 Have a question or experiencing an issue? Visit our [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ) for solutions to common problems.
+
+![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
 
 ---
 
