@@ -1,181 +1,113 @@
-# NppOpenAI — Bring AI Power to Notepad++
+```
+  _   _             ___                   _    ___
+ | \ | |_ __  _ __ / _ \ _ __   ___ _ __ / \  |_ _|
+ |  \| | '_ \| '_ \ | | | '_ \ / _ \ '__/ _ \  | |
+ | |\  | |_) | |_) | |_| | |_) |  __/ | / ___ \ | |
+ |_| \_| .__/| .__/ \___/| .__/ \___|_|/_/   \_\___|
+       |_|   |_|         |_|
+```
 
-Transform your Notepad++ experience with direct access to OpenAI’s powerful AI models—push your editing boundaries with swift code generation, cunning translations, and lightning-fast summaries. Let your inner nerd thrive and take your coding adventures to the next level!
+# NppOpenAI — AI Augmentation Without Leaving the Keyboard
 
-## ✨ Quick Start
+> "Because true nerds shouldn't have to reach for the mouse" 🧠⚡
 
-1. Select text in Notepad++
-2. Press `Ctrl + Shift + O`
-3. Get AI-generated responses instantly!
-   > A loading dialog will appear, spinning with anticipation as your chosen AI model tackles questions, translations, and more. Get ready to supercharge your workflow!
+Transform your Notepad++ into a command-line style AI assistant that responds at the speed of thought. Built for developers who value efficiency and keyboard-driven workflows.
 
-## 🚀 What Can You Do With NppOpenAI?
+## ⌨️ Keyboard-First Workflow
+
+```bash
+# SELECT TEXT -> Ctrl+Shift+O -> GET RESULT
+# No menus. No dialogs. No mouse.
+```
 
 ![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)
 
-### 💻 Code Like a Pro
+### Pure Text Power
+
+- **Code Generation**: `Ctrl+Shift+O` on a comment → get working code
+- **Instant Translation**: `Ctrl+Shift+O` on foreign text → English output
+- **Document Analysis**: `Ctrl+Shift+O` on long text → concise summary
+- **Command Memory**: Your last used prompt stays active - chain commands efficiently
+
+## 🖥️ Terminal-Style Usage Examples
 
 ```
-// Select this comment and press Ctrl+Shift+O
-// Write a function that calculates the Fibonacci sequence in PHP
+# Quick code fix:
+// BUG: This function sometimes returns NaN
+function add(a,b) { return a+b }
+[SELECT] → [Ctrl+Shift+O]
 ```
 
-### 🌐 Translate Anything
+```
+# Fast translation:
+Denne tekst skal oversættes hurtigt.
+[SELECT] → [Ctrl+Shift+O]
+```
 
 ```
-Mi az árvíztűrő tükörfúrógép?
-(Select this Hungarian text and press Ctrl+Shift+O to see it translated)
+# Generate SQL from natural language:
+Create a query that finds all users who logged in this week
+[SELECT] → [Ctrl+Shift+O]
 ```
 
-### 📝 Summarize Documents
+## 🔧 Power User Configuration
 
-Select long texts, press `Ctrl+Shift+O`, and get concise summaries that retain the key points.
-
-### 🤔 Get Answers to Complex Questions
-
-Whether it’s refactoring tricky code, brainstorming for your next project, or exploring new concepts—NppOpenAI has your back. Join a global community of devs discovering limitless possibilities with AI assistance at their fingertips!
-
-## 🛠️ Setup Made Simple
-
-1. **Configure Your API Key**:
-
-   - Go to Plugins » NppOpenAI » Edit Config
-   - Add your OpenAI API key in the [API] section
-   - Set other preferences like model type and temperature
-
-2. **Load Your Settings**:
-
-   - Click Plugins » NppOpenAI » Load Config
-
-3. **Start Using AI**:
-   - Select text
-   - Press `Ctrl+Shift+O`
-   - Watch the magic happen!
-
-## ✅ Smart Customization
-
-### Create Custom AI Assistants
-
-NppOpenAI supports multiple AI personalities through custom prompts. Create specialized helpers for:
-
-- **Code Reviews** 🔍
-- **Language Translation** 🌍
-- **Technical Writing Assistance** ✏️
-- **Data Analysis** 📊
-- **Creative Writing** 📚
-
-Simply open your instructions file (Plugins » NppOpenAI » Edit Instructions) and add prompts like:
+Edit your `NppOpenAI.ini` directly for maximum control:
 
 ```ini
-[Prompt:translate]
-Translate the selected text to English.
+[API]
+secret_key=sk-...
+model=gpt-4o-mini
+temperature=0.7
 
-[Prompt:code_review]
-Review this code for bugs and suggest improvements.
-
-[Prompt:summarize]
-Summarize the selected text in bullet points.
+[PLUGIN]
+keep_question=0  # Replace text vs. append responses
 ```
 
-### Chat Functionality
+## ⚡ Keyboard Efficiency Features
 
-Enable chat mode to maintain conversation context between requests:
+| Shortcut                    | Action                                         | Time Saved                     |
+| --------------------------- | ---------------------------------------------- | ------------------------------ |
+| **Ctrl+Shift+O**            | Process selected text                          | ~15s vs. copy/paste to browser |
+| **Last prompt memory**      | Automatic reuse of previous prompt             | ~5s per operation              |
+| **Context-aware responses** | Get exactly what you need                      | Countless minutes              |
+| **Replace-mode**            | Responses replace queries for seamless editing | ~3s per edit                   |
 
-1. Click Plugins » NppOpenAI » Chat: off
-2. Check "Use chat" and set your preferred history limit
-3. Enjoy contextual conversations with the AI!
+## 📦 Quick Setup for the Impatient
 
-## ⚙️ Additional Settings
+```bash
+1. Plugins → NppOpenAI → Edit Config
+2. secret_key=YOUR_API_KEY
+3. Ctrl+S
+4. Ready to use
+```
 
-- **Remove Original Questions**: Uncheck Plugins » NppOpenAI » Keep my question
-- **Adjust Response Style**: Modify temperature and other parameters in the config file
-- **Track Token Usage**: Monitor your API usage in the [PLUGIN] section of NppOpenAI.ini
+## 🧙‍♂️ Custom Prompt Wizardry
 
-### Replace or Keep Your Questions
-
-Easily choose whether the AI’s answer should replace your original question in the editor or appear below it. Go to Plugins » NppOpenAI » Keep my question to toggle this preference, enabling more flexible AI-aided editing.
-
-### Attention to Detail
-
-NppOpenAI remembers your last used prompt, so you can quickly reuse or change it without losing focus. Navigating these prompts without a mouse is also possible: use the keyboard-friendly interface to select prompts and streamline your workflow.
-
-## 📚 Example Prompt Templates
-
-### Translation Assistant
+Create keyboard-accessible AI personas in your instructions file:
 
 ```ini
-[Prompt:Translate_2_EN]
-Translate the provided text into English while maintaining its original meaning, tone and layout.
+[Prompt:sql]
+Convert this description into a PostgreSQL query.
 
-# Output Format
-The translation should be delivered in English. Start the translation directly without prefacing it with any additional context or commentary.
+[Prompt:cpp]
+Optimize this C++ code for performance.
 
-# Notes
-- Ensure that nuances and idiomatic expressions from the original text are accurately translated to retain their original intent and meaning.
-- Pay special attention to grammar and style to ensure the translated text is easy to read and understand.
+[Prompt:regex]
+Create a regular expression that matches the described pattern.
 ```
 
-### Code Helper
+## 💾 Power User Techniques
 
-```ini
-[Prompt:code_assistant]
-Analyze the provided code and help improve it. Consider:
-- Bugs or logical errors
-- Performance optimizations
-- Better coding practices
-- Clearer naming conventions
+- **Keep instructions file open** in one tab for reference
+- **Toggle replacement mode** to seamlessly integrate AI into editing
+- **Chain prompts** for multi-step processing
+- **Watch token count** in the status to optimize prompts
 
-Respond with specific suggestions and example code when appropriate.
-```
-
-### Document Summarizer
-
-```ini
-[Prompt:Summarize]
-Summarize the selected text while retaining its original meaning and key points. Use dynamic reasoning to determine whether to keep the overall structure for long documents or merge the content into a single paragraph for shorter documents.
-
-# Output Format
-For longer documents, retain the existing structure in the summary but condensed. For shorter documents, deliver the summary as a single, coherent paragraph in English.
-
-# Notes
-- Ensure that the main ideas and critical information from the original text are accurately captured.
-- Pay special attention to grammar and style to ensure the summarized text is easy to read and understand.
-```
-
-### English Technical Writing
-
-```ini
-[Prompt:Write_in_En]
-Produce grammatically correct, well-structured English text for IT/Cybersecurity contexts. You may also handle translation or enhance content flow as needed. Adapt background or mood to user requirements.
-
-# Output Format
-Provide the text directly in English without extra commentary.
-
-# Notes
-- Maintain technical fidelity and clarity
-- Use standardized cybersecurity terminology (NIST, ISO 27001)
-```
-
-### Node-RED Flow Assistant
-
-```ini
-[Prompt:Node-RED]
-You are a Node-RED expert. Generate production-ready function node code.
-
-# Core Guidelines
-1. Use async operations carefully
-2. Handle errors with structured payloads
-3. Only reference Setup Tab modules, never use require()
-```
-
-## 🆘 Need Help?
-
-Have a question or experiencing an issue? Visit our [FAQ page](https://github.com/Krazal/nppopenai/wiki/FAQ) for solutions to common problems.
-
-![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
+![NppOpenAI in action](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
 
 ---
 
-**💡 Pro Tip**: Keep your instructions file open in one tab while working in another for seamless AI assistance without disrupting your workflow.
-
-Unleash the power of AI in your favorite editor with NppOpenAI—where creativity meets productivity anytime, anywhere!
+<div align="center">
+<code>while(coding){ useAI(); improveCode(); keepHands(ON_KEYBOARD); }</code>
+</div>
