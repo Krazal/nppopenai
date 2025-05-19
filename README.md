@@ -119,6 +119,8 @@ Optimize this C++ code for performance.
 Create a regular expression that matches the described pattern.
 ```
 
+Check out our [advanced prompt examples](INSTRUCTIONS_EXAMPLES_INI.md) for more sophisticated AI interactions, including technical writing, code fixing, and Node-RED function development.
+
 ## 💾 Power User Techniques
 
 - **Keep instructions file open** in one tab for reference
@@ -148,8 +150,6 @@ Instead of context-switching between browsers, translators, and documentation si
    When one AI approach doesn't yield perfect results, Ctrl+Z steps back, then a slight prompt adjustment with arrow keys and Enter tries a new angle—all without touching the mouse or losing context
 
 In minutes, what would have taken hours of research and context-switching is done. The developer has translated documentation, fixed configuration errors, and optimized code—all through rapid-fire keyboard commands, fluid tab navigation, and AI augmentation working in perfect harmony.
-
-This isn't just automation; it's _amplification_ of developer capability through seamless keyboard-driven workflows.
 
 ![NppOpenAI in action](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
 
