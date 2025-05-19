@@ -119,7 +119,7 @@ Optimize this C++ code for performance.
 Create a regular expression that matches the described pattern.
 ```
 
-Check out our [advanced prompt examples](INSTRUCTIONS_EXAMPLES_INI.md) for more sophisticated AI interactions, including technical writing, code fixing, and Node-RED function development.
+Check out our [advanced prompt examples](INSTRUCTIONS_EXAMPLES_INI.txt) for more sophisticated AI interactions, including technical writing, code fixing, and Node-RED function development.
 
 ## 💾 Power User Techniques
 
