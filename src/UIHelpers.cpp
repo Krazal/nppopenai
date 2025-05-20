@@ -111,7 +111,11 @@ void UIHelpers::openAboutDlg()
     char about[255];
     sprintf(about, "\
 OpenAI (aka. ChatGPT) plugin for Notepad++ v%s by Richard Stockinger\n\n\
-This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\
+This plugin uses libcurl v%s with OpenSSL and nlohmann/json v%d.%d.%d\n\n\
+Thank you to the contributors for their support!\n\
+- Andrea Tomassi\n\
+- chcg\n\
+- Gitoffthelawn\
 ",
             NPPOPENAI_VERSION, LIBCURL_VERSION, NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
     ::MessageBox(nppData._nppHandle, myMultiByteToWideChar(about), TEXT("About"), MB_OK);

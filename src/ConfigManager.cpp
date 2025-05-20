@@ -88,7 +88,7 @@ namespace ConfigManagerImpl
             ::MessageBox(nppData._nppHandle,
                          TEXT("API key not properly configured. Please edit the config file and set a valid API key."),
                          TEXT("NppOpenAI Configuration Error"),
-                         MB_ICONERROR);
+                         MB_ICONWARNING);
         }
 
         // Read other API settings

@@ -30,10 +30,10 @@
 #include <string>
 
 // Plugin version info
-#define NPPOPENAI_VERSION "0.5.2"
+#define NPPOPENAI_VERSION "0.5.0"
 #define NPPOPENAI_VERSION_MAJOR 0
 #define NPPOPENAI_VERSION_MINOR 5
-#define NPPOPENAI_VERSION_PATCH 2
+#define NPPOPENAI_VERSION_PATCH 0
 
 // Plugin toolbar icons
 #define IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT 101

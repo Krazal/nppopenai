@@ -232,9 +232,16 @@ namespace OpenAIClientImpl
 
         // Prepare URL and proxy
         std::string url = toUTF8(configAPIValue_baseURL);
-        if (url.back() != '/')
+		if (url.back() != '/') // Trim trailing slash if necessary
             url += '/';
-        url += "v1/chat/completions";
+        // Ensure URL ends with "v1/chat/completions/" (if not already)
+        // Replace the usage of `ends_with` with a custom implementation since `std::string::ends_with` is only available in C++20 and later.
+        bool isChatCompletion = (url.size() >= std::string("v1/chat/completions/").size() &&
+			url.compare(url.size() - std::string("v1/chat/completions/").size(), std::string("v1/chat/completions/").size(), "v1/chat/completions/") == 0);
+        if (!isChatCompletion)
+            url += "v1/chat/completions";
+		else // Remove the last character (slash) if URL ends with "v1/chat/completions/"
+			url.erase(url.size() - 1);
         std::string proxy = toUTF8(configAPIValue_proxyURL);
 
         // Call OpenAI API
@@ -245,7 +252,7 @@ namespace OpenAIClientImpl
             _loaderDlg.display(false);
 
             // Try to extract error details from the response JSON
-            std::wstring errorMsg = L"Failed to contact OpenAI API.";
+            std::wstring errorMsg = L"Failed to connect OpenAI API.";
             try
             {
                 auto errorJson = json::parse(response);
