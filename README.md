@@ -1,10 +1,9 @@
 ```
-  _   _             ___                   _    ___
- | \ | |_ __  _ __ / _ \ _ __   ___ _ __ / \  |_ _|
- |  \| | '_ \| '_ \ | | | '_ \ / _ \ '__/ _ \  | |
- | |\  | |_) | |_) | |_| | |_) |  __/ | / ___ \ | |
- |_| \_| .__/| .__/ \___/| .__/ \___|_|/_/   \_\___|
-       |_|   |_|         |_|
+   \  |              _ \                      \   _ _| 
+    \ | __ \  __ \  |   | __ \   _ \ __ \    _ \    |  
+  |\  | |   | |   | |   | |   |  __/ |   |  ___ \   |  
+ _| \_| .__/  .__/ \___/  .__/ \___|_|  _|_/    _\___| 
+       _|    _|          _|                            
 ```
 
 # NppOpenAI — AI Augmentation Without Leaving the Keyboard
@@ -20,7 +19,7 @@ Transform your Notepad++ into a command-line style AI assistant that responds at
 # No menus. No dialogs. No mouse.
 ```
 
-![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)
+[//]: # "[TODO] Create a fine banner. This was previously used:  ![NppOpenAI Plugin Banner](https://github.com/andrea-tomassi/nppopenai/blob/bfa8e318cb91a7a780a485f3a2bd9743709a3d5a/src/Resources/toolbar_icon_chat_32x32.ico)"
 
 ### Pure Text Power
 

@@ -92,6 +92,11 @@ void updateToolbarIcons();
 void commandMenuCleanUp();
 
 /**
+ * Loads settings from INI and configuration files on save
+ */
+void loadConfigAndInstructionsOnSave(uptr_t fileIDFrom);
+
+/**
  * Sets up a plugin command
  *
  * @param index Zero-based index in the command array

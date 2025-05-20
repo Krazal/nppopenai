@@ -117,6 +117,12 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode)
 	}
 	break;
 
+	case NPPN_FILESAVED:
+	{
+		loadConfigAndInstructionsOnSave(notifyCode->nmhdr.idFrom);
+	}
+	break;
+
 	case NPPN_SHUTDOWN:
 	{
 		// Clean up resources when Notepad++ is shutting down

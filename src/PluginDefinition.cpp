@@ -82,6 +82,7 @@ std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition pen
 std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
 bool isKeepQuestion = true;														// Keep original question in response
 std::vector<std::wstring> chatHistory = {};										// Chat history for context
+bool isLoadConfigAlertShown = false;											// Show alert only once for loading config
 
 // Buffer for selected text in Scintilla editor (UTF-8)
 static char selectedTextA[9999];
@@ -187,6 +188,20 @@ void commandMenuCleanUp()
 	_chatSettingsDlg.destroy();
 }
 
+// Load instructions and config files when the files are saved
+void loadConfigAndInstructionsOnSave(uptr_t fileIDFrom)
+{
+	TCHAR fileName[MAX_PATH];
+	::SendMessage(nppData._nppHandle, NPPM_GETFULLPATHFROMBUFFERID, fileIDFrom, reinterpret_cast<LPARAM>(fileName));
+
+	// Compare the file name with the expected paths for instructions and config files
+	// If they match, reload the configuration
+	if (_wcsicmp(instructionsFilePath, fileName) == 0 || _wcsicmp(iniFilePath, fileName) == 0)
+	{
+		loadConfig(false);
+	}
+}
+
 // Helper function to set up a menu command
 bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey *sk, bool check0nInit)
 {
@@ -211,6 +226,15 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 // Wrapper function to reload configuration without modifying plugin settings
 void loadConfigWithoutPluginSettings()
 {
+	if (!isLoadConfigAlertShown)
+	{
+		// Show alert only once for loading config
+		::MessageBox(nppData._nppHandle,
+			TEXT("When saving configuration and instruction files, the settings are loaded automatically."),
+			TEXT("NppOpenAI: No manual loading required"),
+			MB_ICONINFORMATION);
+		isLoadConfigAlertShown = true;
+	}
 	loadConfig(false);
 }
 

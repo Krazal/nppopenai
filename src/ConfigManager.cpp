@@ -198,13 +198,8 @@ void openConfigFile()
  * Opens the instructions file in Notepad++
  *
  * This function sends a message to Notepad++ to open the instructions file
- * and displays a message box with instructions for saving changes.
  */
 void openInstructionsFile()
 {
     ::SendMessage(nppData._nppHandle, NPPM_DOOPEN, 0, (LPARAM)instructionsFilePath);
-    ::MessageBox(nppData._nppHandle,
-                 TEXT("After saving this file, click Plugins » NppOpenAI » Load Config to apply changes."),
-                 TEXT("NppOpenAI: Instructions"),
-                 MB_ICONINFORMATION);
 }
