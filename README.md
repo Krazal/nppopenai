@@ -1,9 +1,9 @@
 ```
-   \  |              _ \                      \   _ _| 
-    \ | __ \  __ \  |   | __ \   _ \ __ \    _ \    |  
-  |\  | |   | |   | |   | |   |  __/ |   |  ___ \   |  
- _| \_| .__/  .__/ \___/  .__/ \___|_|  _|_/    _\___| 
-       _|    _|          _|                            
+   \  |              _ \                      \   _ _|
+    \ | __ \  __ \  |   | __ \   _ \ __ \    _ \    |
+  |\  | |   | |   | |   | |   |  __/ |   |  ___ \   |
+ _| \_| .__/  .__/ \___/  .__/ \___|_|  _|_/    _\___|
+       _|    _|          _|
 ```
 
 # NppOpenAI — AI Augmentation Without Leaving the Keyboard
@@ -76,12 +76,79 @@ Edit your `NppOpenAI.ini` directly for maximum control:
 ```ini
 [API]
 secret_key=sk-...
+api_url=https://api.openai.com/v1/    # Base URL for API
+chat_completions_route=chat/completions  # Endpoint path
+response_type=openai  # Response format (openai, ollama, simple)
 model=gpt-4o-mini
 temperature=0.7
+show_reasoning=0  # Show (1) or hide (0) <think>...</think> reasoning sections
 
 [PLUGIN]
 keep_question=0  # Replace text vs. append responses
 ```
+
+## 🚀 Custom Endpoints for Direct LLM Integration
+
+Connect directly to any LLM API without intermediary adapters or proxies. The plugin automatically handles request formatting, authentication, and response parsing for each backend type.
+
+```ini
+# Standard OpenAI API setup
+api_url=https://api.openai.com/v1/
+chat_completions_route=chat/completions
+response_type=openai
+```
+
+> **🔄 Multiple API Format Support:** This plugin intelligently adapts to different LLM APIs through the `response_type` parameter:
+>
+> - `openai`: OpenAI/Azure format with choices array and message content
+> - `ollama`: Ollama's native API with system and prompt fields
+> - `claude`: Anthropic Claude API with content array structure
+> - `simple`: Simple completion format for lightweight backends
+>
+> Each format has specialized request formatters, authentication methods, and response parsers.
+
+### 🔌 URL Configuration
+
+The plugin constructs API URLs by combining two parameters:
+
+1. `api_url` - The base URL of the AI service
+2. `chat_completions_route` - The specific endpoint path
+
+**Final URL = api_url + chat_completions_route**
+
+**Examples:**
+
+```ini
+# OpenAI API (default)
+api_url=https://api.openai.com/v1/
+chat_completions_route=chat/completions
+response_type=openai
+
+# Ollama with native API format
+api_url=http://localhost:11434/
+chat_completions_route=api/generate
+response_type=ollama
+model=qwen3:1.7b
+
+# Anthropic Claude API
+api_url=https://api.anthropic.com/v1/
+chat_completions_route=messages
+response_type=claude
+
+# OpenAI-compatible server (like LiteLLM or vLLM)
+api_url=http://localhost:8000/
+chat_completions_route=v1/chat/completions
+response_type=openai
+```
+
+**Notes:**
+
+- Trailing slashes are handled automatically
+- Choose the response_type to match your server's output format
+- The plugin automatically formats requests correctly for each API type
+- Authentication headers are customized for each provider (Bearer token or API key)
+- For non-OpenAI API formats, you don't need an adapter or compatibility layer
+- You can directly connect to different LLM backends regardless of their API format
 
 ## ⚡ Keyboard Efficiency Features
 
@@ -126,6 +193,7 @@ Check out our [advanced prompt examples](INSTRUCTIONS_EXAMPLES.txt) for more sop
 - **Toggle replacement mode** to seamlessly integrate AI into editing
 - **Chain prompts** for multi-step processing
 - **Watch token count** in the status to optimize prompts
+- **Control reasoning visibility** with `show_reasoning=1|0` to show or hide AI's thinking process
 
 ## 🔄 The Rapid-Fire AI Workflow
 
@@ -151,6 +219,28 @@ Instead of context-switching between browsers, translators, and documentation si
 In minutes, what would have taken hours of research and context-switching is done. The developer has translated documentation, fixed configuration errors, and optimized code—all through rapid-fire keyboard commands, fluid tab navigation, and AI augmentation working in perfect harmony.
 
 ![NppOpenAI in action](https://github.com/andrea-tomassi/nppopenai/blob/f90c9d16a6940ee17d920daeaa9253c8ef1c5674/src/Resources/npp_openai_screen.png)
+
+## 🧠 AI Thinking Process Control
+
+Control how much of the AI's reasoning you can see with the `show_reasoning` configuration option:
+
+```ini
+[API]
+show_reasoning=0  # Default: Hide thinking sections
+```
+
+When working with AI models trained to show their reasoning, they may include `<think>...</think>` sections in their responses. These sections contain the AI's step-by-step thought process.
+
+- **With `show_reasoning=0`**: These sections are automatically filtered out for clean responses
+- **With `show_reasoning=1`**: The thinking sections remain visible, giving insight into how the AI arrived at its conclusions
+
+This feature is especially useful for:
+
+- **Learning** how the AI solves complex problems
+- **Debugging** responses that seem incorrect
+- **Refining** your prompts based on the AI's reasoning path
+
+> **Note**: When streaming mode is enabled (`streaming=1`), thinking sections that span across multiple response chunks may be partially retained. For complete filtering of thinking sections during streaming, you may need to process the full response in non-streaming mode.
 
 ---
 
