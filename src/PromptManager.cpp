@@ -40,6 +40,27 @@ void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
     Prompt current;
     bool hasHeader = false;
 
+	// Check if the file is empty or contains only BOM characters
+    fseek(file, 0, SEEK_END);  
+    std::streamsize fileSize = ftell(file);
+    rewind(file);
+    fseek(file, 0, SEEK_SET);
+    if (fileSize == 0) {
+        prompts.push_back(current);
+        fclose(file);
+        return;
+    }
+    if (fileSize == 2) {  
+        std::vector<uint8_t> buffer(2);  
+        if (fread(buffer.data(), 1, 2, file) == 2) {  
+            if (buffer[0] == 0xFF && buffer[1] == 0xFE) {
+                prompts.push_back(current);
+                fclose(file);  
+                return;  
+            }  
+        }  
+    }
+
     while (fgetws(buffer, _countof(buffer), file))
     {
         line = buffer;
