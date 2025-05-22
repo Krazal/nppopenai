@@ -51,9 +51,9 @@ void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
         return;
     }
     if (fileSize == 2) {  
-        std::vector<uint8_t> buffer(2);  
-        if (fread(buffer.data(), 1, 2, file) == 2) {  
-            if (buffer[0] == 0xFF && buffer[1] == 0xFE) {
+        std::vector<uint8_t> tmp_buffer(2);  
+        if (fread(tmp_buffer.data(), 1, 2, file) == 2) {
+            if (tmp_buffer[0] == 0xFF && tmp_buffer[1] == 0xFE) {
                 prompts.push_back(current);
                 fclose(file);  
                 return;  
