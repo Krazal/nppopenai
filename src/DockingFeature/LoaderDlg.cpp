@@ -59,11 +59,6 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 		::SetTimer(_hSelf, 1, 150, NULL);  // Timer ID 1 for dots/spinner animation (faster)
 		::SetTimer(_hSelf, 2, 1000, NULL); // Timer ID 2 for elapsed time (every second)
 
-		// Set initial static text to model name response
-		TCHAR modelText[128];
-		swprintf(modelText, 128, TEXT("%s response"), configAPIValue_model.c_str());
-		::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
-
 		return TRUE;
 	}
 	case WM_SHOWWINDOW:
@@ -80,6 +75,16 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 			{
 				::SetWindowText(spinnerControl, spinnerChars[0]);
 			}
+
+			// Set initial static text to model name response
+			TCHAR modelText[128];
+			swprintf(modelText, 128, TEXT("“%s” AI model will respond"), configAPIValue_model.c_str());
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
+
+			// Reset the elapsed time text
+			TCHAR timeText[128];
+			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), 0);
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_ESTIMATE, timeText);
 
 			// Reset dot counter, elapsed time, and start timers
 			dotCount = 0;
