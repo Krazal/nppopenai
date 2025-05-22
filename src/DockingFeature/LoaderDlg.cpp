@@ -83,7 +83,7 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 
 			// Reset the elapsed time text
 			TCHAR timeText[128];
-			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), 0);
+			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), static_cast<unsigned long long>(0));
 			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_ESTIMATE, timeText);
 
 			// Reset dot counter, elapsed time, and start timers
