@@ -48,9 +48,11 @@ extern ChatSettingsDlg _chatSettingsDlg;             // Chat settings dialog
 extern FuncItem funcItem[];                          // Array of plugin commands
 extern bool isKeepQuestion;                          // Flag for "keep question" option
 extern bool debugMode;                               // Flag for debug mode
-extern std::wstring configAPIValue_secretKey;        // API secret key
-extern std::wstring configAPIValue_baseURL;          // Base URL for API requests
-extern std::wstring configAPIValue_proxyURL;         // Proxy URL for API requests
+extern std::wstring configAPIValue_secretKey;        // API secret key (e.g., "sk-...")
+extern std::wstring configAPIValue_baseURL;          // Base URL for API requests (e.g., "https://api.openai.com/v1/")
+extern std::wstring configAPIValue_chatRoute;        // Chat completions route path (e.g., "chat/completions")
+extern std::wstring configAPIValue_responseType;     // Response format type (openai, ollama, claude, simple)
+extern std::wstring configAPIValue_proxyURL;         // Proxy URL for API requests (e.g., "http://proxy:8080" or "0" for none)
 extern std::wstring configAPIValue_model;            // Model name for API requests
 extern std::wstring configAPIValue_instructions;     // Instructions for API requests
 extern std::wstring configAPIValue_temperature;      // Temperature setting for API requests
@@ -58,5 +60,7 @@ extern std::wstring configAPIValue_maxTokens;        // Maximum tokens for API r
 extern std::wstring configAPIValue_topP;             // Top-p setting for API requests
 extern std::wstring configAPIValue_frequencyPenalty; // Frequency penalty for API requests
 extern std::wstring configAPIValue_presencePenalty;  // Presence penalty for API requests
+extern std::wstring configAPIValue_streaming;        // Add streaming flag ("1" for enabled, "0" for disabled)
+extern std::wstring configAPIValue_showReasoning;    // Show reasoning sections ("1" to show <think></think> sections, "0" to remove them)
 
 #endif // EXTERNAL_GLOBALS_H

@@ -14,9 +14,30 @@
 #include <curl/curl.h>
 #include "Sci_Position.h"
 #include "Scintilla.h"
-#include "PromptManager.h" // for Prompt struct and related functions
-#include <chrono>          // For timing API calls
-#include <future>          // for async spinner responsiveness
+#include "PromptManager.h"     // for Prompt struct and related functions
+#include "ResponseParsers.h"   // for different API response parsers and thinking section processing
+#include "RequestFormatters.h" // for different API request formatters
+#include <chrono>              // For timing API calls
+#include <future>              // for async spinner responsiveness
+#include <sstream>             // For string stream processing
+
+/**
+ * Streaming API response handling
+ *
+ * The plugin supports streaming responses from LLMs, where text is returned incrementally
+ * rather than all at once. This provides a more interactive experience as the user can
+ * see the response being generated in real-time.
+ *
+ * Streaming implementation uses Windows messages to safely communicate between the
+ * background network thread and the UI thread. Each chunk of text is processed and
+ * sent via the WM_OPENAI_STREAM_CHUNK message.
+ */
+
+// define custom message for streaming chunks
+#define WM_OPENAI_STREAM_CHUNK (WM_APP + 100)
+
+// static handle to direct streaming chunks
+static HWND s_streamTargetScintilla = nullptr;
 
 /**
  * Makes a POST request to the OpenAI API via cURL
@@ -33,11 +54,27 @@ bool callOpenAI(const std::string &url, const std::string &proxy, const std::str
     if (!curl)
         return false;
 
-    struct curl_slist *headers = nullptr;
-    // Authorization header
-    std::string authHeader = "Authorization: Bearer " + toUTF8(configAPIValue_secretKey);
-    headers = curl_slist_append(headers, authHeader.c_str());
+    struct curl_slist *headers = nullptr; // Headers vary by API
+    std::string apiType = toUTF8(configAPIValue_responseType);
+
+    // Content-Type is always JSON
     headers = curl_slist_append(headers, "Content-Type: application/json");
+
+    // Add authentication headers based on API type
+    if (apiType == "claude")
+    {
+        // Claude API uses x-api-key header
+        std::string authHeader = "x-api-key: " + toUTF8(configAPIValue_secretKey);
+        headers = curl_slist_append(headers, authHeader.c_str());
+        // Claude also requires API version header
+        headers = curl_slist_append(headers, "anthropic-version: 2023-06-01");
+    }
+    else
+    {
+        // OpenAI and most others use Bearer token
+        std::string authHeader = "Authorization: Bearer " + toUTF8(configAPIValue_secretKey);
+        headers = curl_slist_append(headers, authHeader.c_str());
+    }
 
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -96,6 +133,174 @@ size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp
     size_t totalSize = size * nmemb;
     std::string *pResponse = static_cast<std::string *>(userp);
     pResponse->append(static_cast<char *>(contents), totalSize);
+    return totalSize;
+}
+
+/**
+ * CURL write callback for streaming: posts each chunk to the main thread
+ *
+ * @param contents The received data buffer
+ * @param size Always 1
+ * @param nmemb The size of the data received
+ * @param userp User-provided pointer (unused in this case)
+ * @return The number of bytes processed (should match nmemb on success)
+ */
+size_t OpenAIStreamCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    // Avoid unused parameter warning
+    (void)userp;
+
+    size_t totalSize = size * nmemb;
+    std::string chunk(static_cast<char *>(contents), totalSize);
+    std::string content;
+
+    try
+    {
+        // Handle streaming responses for different API formats
+        if (!chunk.empty())
+        {
+            std::string apiType = toUTF8(configAPIValue_responseType);
+
+            if (apiType == "openai")
+            {
+                // OpenAI format can have multiple lines, each starting with data:
+                std::istringstream stream(chunk);
+                std::string line;
+
+                while (std::getline(stream, line))
+                {
+                    // Skip empty lines
+                    if (line.empty() || line == "\r")
+                    {
+                        continue;
+                    } // Process data: lines
+                    if (line.find("data:") == 0)
+                    {
+                        // Extract the JSON part after "data: "
+                        std::string jsonStr = line.substr(5);
+                        // Remove any trailing \r if present
+                        if (!jsonStr.empty() && jsonStr.back() == '\r')
+                        {
+                            jsonStr.pop_back();
+                        }
+                        if (jsonStr == " [DONE]" || jsonStr == "[DONE]" ||
+                            jsonStr.find("[DONE]") != std::string::npos)
+                        {
+                            // End of stream marker for OpenAI
+                            continue;
+                        }
+
+                        try
+                        {
+                            auto json = json::parse(jsonStr);
+                            if (json.contains("choices") && json["choices"].size() > 0 &&
+                                json["choices"][0].contains("delta") &&
+                                json["choices"][0]["delta"].contains("content"))
+                            {
+                                content += json["choices"][0]["delta"]["content"].get<std::string>();
+                            }
+                        }
+                        catch (...)
+                        {
+                            // Ignore parse errors for OpenAI stream chunks
+                        }
+                    }
+                }
+
+                // If we processed any content in the loop, return now
+                if (!content.empty())
+                {
+                    auto *pChunk = new std::string(content);
+                    PostMessage(nppData._nppHandle, WM_OPENAI_STREAM_CHUNK, 0, reinterpret_cast<LPARAM>(pChunk));
+                    return totalSize;
+                }
+            }
+            else if (apiType == "ollama")
+            {
+                // Ollama format: {"response":"text"}
+                try
+                {
+                    auto json = json::parse(chunk);
+                    if (json.contains("response"))
+                    {
+                        content = json["response"].get<std::string>();
+
+                        // Direct handling for Ollama streaming to ensure delivery
+                        if (!content.empty())
+                        {
+                            auto *pChunk = new std::string(content);
+                            PostMessage(nppData._nppHandle, WM_OPENAI_STREAM_CHUNK, 0, reinterpret_cast<LPARAM>(pChunk));
+                            return totalSize; // Return early after processing Ollama chunk
+                        }
+                    }
+
+                    // Check for Ollama stream completion marker
+                    if (json.contains("done") && json["done"].is_boolean() && json["done"].get<bool>())
+                    {
+                        // This is the final message indicating completion
+                        // We can just return without posting a message
+                        return totalSize;
+                    }
+                }
+                catch (...)
+                {
+                    // Ignore parse errors for Ollama stream chunks
+                }
+            }
+            else if (apiType == "claude")
+            {
+                // Claude format for events: {"type":"content_block_delta","delta":{"type":"text", "text":"text"}}
+                try
+                {
+                    auto json = json::parse(chunk);
+                    if (json.contains("type") && json["type"] == "content_block_delta" &&
+                        json.contains("delta") && json["delta"].contains("text"))
+                    {
+                        content = json["delta"]["text"].get<std::string>();
+                    }
+                }
+                catch (...)
+                {
+                    // Ignore parse errors for Claude stream chunks
+                }
+            } // If we successfully parsed content or this is raw text (and we haven't already handled it)
+            if (!content.empty() || chunk.size() < 100)
+            {
+                // If we couldn't extract specific content, use the raw chunk (might be plain text)
+                if (content.empty())
+                {
+                    content = chunk;
+
+                    // Check for "data: [DONE]" in raw chunk and skip it
+                    if (content == "data: [DONE]" || content == "data: [DONE]\n" ||
+                        content == "data: [DONE]\r\n" || content.find("data: [DONE]") == 0)
+                    {
+                        // This is the OpenAI end marker, don't display it
+                        return totalSize;
+                    }
+                }
+
+                // Allocate and post to our message loop
+                auto *pChunk = new std::string(content);
+                PostMessage(nppData._nppHandle, WM_OPENAI_STREAM_CHUNK, 0, reinterpret_cast<LPARAM>(pChunk));
+            }
+        }
+    }
+    catch (...)
+    {
+        // Fallback for any unexpected errors - just send the raw chunk
+        // But first check if it's a "[DONE]" marker
+        if (chunk == "data: [DONE]" || chunk == "data: [DONE]\n" ||
+            chunk == "data: [DONE]\r\n" || chunk.find("data: [DONE]") == 0)
+        {
+            // This is the OpenAI end marker, don't display it
+            return totalSize;
+        }
+
+        auto *pChunk = new std::string(chunk);
+        PostMessage(nppData._nppHandle, WM_OPENAI_STREAM_CHUNK, 0, reinterpret_cast<LPARAM>(pChunk));
+    }
+
     return totalSize;
 }
 
@@ -210,48 +415,250 @@ namespace OpenAIClientImpl
         else
             systemPrompt = configAPIValue_instructions;
 
-        // Build OpenAI API request JSON
-        json reqJson;
-        reqJson["model"] = toUTF8(configAPIValue_model);
-        reqJson["messages"] = json::array();
-        if (!systemPrompt.empty())
+        // Parse parameters from configuration
+        float temperature = configAPIValue_temperature != L"0" ? std::stof(toUTF8(configAPIValue_temperature)) : 1.0f;
+        float topP = configAPIValue_topP != L"0" ? std::stof(toUTF8(configAPIValue_topP)) : 1.0f;
+        int maxTokens = configAPIValue_maxTokens != L"0" ? std::stoi(toUTF8(configAPIValue_maxTokens)) : 0;
+        float frequencyPenalty = configAPIValue_frequencyPenalty != L"0" ? std::stof(toUTF8(configAPIValue_frequencyPenalty)) : 0.0f;
+        float presencePenalty = configAPIValue_presencePenalty != L"0" ? std::stof(toUTF8(configAPIValue_presencePenalty)) : 0.0f; // Get the appropriate request formatter based on the configured response type
+        auto formatter = RequestFormatters::getFormatterForEndpoint(configAPIValue_responseType);
+
+        // Format request using the selected formatter
+        std::string request = formatter(
+            configAPIValue_model,
+            multiByteToWideChar(selectedText.c_str()),
+            systemPrompt,
+            temperature,
+            maxTokens,
+            topP,
+            frequencyPenalty,
+            presencePenalty); // Check if streaming is enabled
+        bool streaming = (configAPIValue_streaming == L"1");
+        if (streaming)
         {
-            reqJson["messages"].push_back({{"role", "system"}, {"content", toUTF8(systemPrompt)}});
+            auto pos = request.rfind('}');
+            if (pos != std::string::npos)
+            {
+                if (configAPIValue_responseType == L"openai")
+                {
+                    request.insert(pos, ",\"stream\":true");
+                }
+                else if (configAPIValue_responseType == L"ollama")
+                {
+                    // Make sure it's exactly stream:true as required by Ollama
+                    request.insert(pos, ",\"stream\":true");
+                }
+                else if (configAPIValue_responseType == L"claude")
+                {
+                    request.insert(pos, ",\"stream\":true");
+                }
+            }
         }
-        reqJson["messages"].push_back({{"role", "user"}, {"content", selectedText}});
-        if (configAPIValue_temperature != L"0")
-            reqJson["temperature"] = std::stod(toUTF8(configAPIValue_temperature));
-        if (configAPIValue_topP != L"0")
-            reqJson["top_p"] = std::stod(toUTF8(configAPIValue_topP));
-        if (configAPIValue_maxTokens != L"0")
-            reqJson["max_tokens"] = std::stoi(toUTF8(configAPIValue_maxTokens));
-        if (configAPIValue_frequencyPenalty != L"0")
-            reqJson["frequency_penalty"] = std::stod(toUTF8(configAPIValue_frequencyPenalty));
-        if (configAPIValue_presencePenalty != L"0")
-            reqJson["presence_penalty"] = std::stod(toUTF8(configAPIValue_presencePenalty));
+        else if (configAPIValue_responseType == L"ollama")
+        {
+            // Ensure stream is explicitly set to false for non-streaming Ollama requests
+            auto pos = request.rfind('}');
+            if (pos != std::string::npos)
+            {
+                request.insert(pos, ",\"stream\":false");
+            }
+        }
 
-        // Prepare URL and proxy
+        if (debugMode)
+        {
+            // Log request for debugging
+            std::wstring debugMsg = L"Streaming request: ";
+            debugMsg += multiByteToWideChar(request.c_str());
+            ::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)L"Making streaming request...");
+        }
+
+        // Prepare URL and proxy, supporting custom endpoints for self-hosted LLMs
         std::string url = toUTF8(configAPIValue_baseURL);
-		if (url.back() != '/') // Trim trailing slash if necessary
-            url += '/';
-        // Ensure URL ends with "v1/chat/completions/" (if not already)
-        // Replace the usage of `ends_with` with a custom implementation since `std::string::ends_with` is only available in C++20 and later.
-        bool isChatCompletion = (url.size() >= std::string("v1/chat/completions/").size() &&
-			url.compare(url.size() - std::string("v1/chat/completions/").size(), std::string("v1/chat/completions/").size(), "v1/chat/completions/") == 0);
-        if (!isChatCompletion)
-            url += "v1/chat/completions";
-		else // Remove the last character (slash) if URL ends with "v1/chat/completions/"
-			url.erase(url.size() - 1);
-        std::string proxy = toUTF8(configAPIValue_proxyURL);
+        std::string chatRoute = toUTF8(configAPIValue_chatRoute);
 
-        // Call OpenAI API
+        // Ensure base URL ends with a trailing slash
+        if (!url.empty() && url.back() != '/')
+        {
+            url += '/';
+        }
+
+        // Check if URL already includes the chat completions endpoint
+        bool hasCompletionsEndpoint =
+            url.find(chatRoute) != std::string::npos;
+
+        if (!hasCompletionsEndpoint && !chatRoute.empty())
+        {
+            url += chatRoute;
+        }
+        else if (hasCompletionsEndpoint)
+        {
+            if (url.size() > 1 && url.back() == '/' &&
+                url.substr(url.size() - chatRoute.size() - 1).find(chatRoute + "/") != std::string::npos)
+            {
+                url.pop_back();
+            }
+        }
+        std::string proxy = toUTF8(configAPIValue_proxyURL); // Stream or standard call
         std::string response;
-        bool ok = callOpenAI(url, proxy, reqJson.dump(), response);
+        bool ok = true;
+        if (streaming)
+        {
+            // prepare streaming curl
+            CURL *curl = curl_easy_init();
+            struct curl_slist *headers = nullptr;
+            std::string apiType = toUTF8(configAPIValue_responseType);
+
+            // Set required headers
+            headers = curl_slist_append(headers, "Content-Type: application/json"); // Add Accept header for handling streaming response
+            if (apiType == "openai" || apiType == "ollama")
+            {
+                headers = curl_slist_append(headers, "Accept: text/event-stream");
+            }
+
+            if (apiType == "claude")
+            {
+                std::string authHeader = "x-api-key: " + toUTF8(configAPIValue_secretKey);
+                headers = curl_slist_append(headers, authHeader.c_str());
+                headers = curl_slist_append(headers, "anthropic-version: 2023-06-01");
+            }
+            else
+            {
+                std::string authHeader = "Authorization: Bearer " + toUTF8(configAPIValue_secretKey);
+                headers = curl_slist_append(headers, authHeader.c_str());
+            }
+
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.c_str());
+            s_streamTargetScintilla = curScintilla;
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, OpenAIStreamCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, nullptr);
+
+            // Add proper headers for event-stream handling
+            curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+            auto futureRes = std::async(std::launch::async, [curl, &proxy, &url]()
+                                        {
+                                            // Set proxy if provided
+                                            if (!proxy.empty() && proxy != "0") {
+                                                curl_easy_setopt(curl, CURLOPT_PROXY, proxy.c_str());
+                                            }
+                                            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+                                            CURLcode r = curl_easy_perform(curl);
+                                            return r; }); // Reuse the existing selStart variable instead of declaring a new one
+            selStart = ::SendMessage(curScintilla, SCI_GETSELECTIONSTART, 0, 0);
+            ::SendMessage(curScintilla, SCI_SETTARGETSTART, selStart, 0);
+            ::SendMessage(curScintilla, SCI_SETTARGETEND, ::SendMessage(curScintilla, SCI_GETSELECTIONEND, 0, 0), 0); // Handle "keep my question" option
+            std::string initialText = "";
+            if (isKeepQuestion)
+            {
+                // Use only a single newline for Ollama responses to reduce excessive spacing
+                if (configAPIValue_responseType == L"ollama")
+                {
+                    initialText = selectedText + "\n";
+                }
+                else
+                {
+                    initialText = selectedText + "\n\n";
+                }
+            }
+            ::SendMessage(curScintilla, SCI_REPLACETARGET, initialText.length(), reinterpret_cast<LPARAM>(initialText.c_str()));
+
+            // Set cursor at the end of the replacement text to ensure streaming content is appended correctly
+            Sci_Position textEnd = selStart + initialText.length();
+            ::SendMessage(curScintilla, SCI_SETSEL, textEnd, textEnd);
+            while (futureRes.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready)
+            {
+                MSG msgLocal; // Renamed to avoid shadowing the outer msg variable
+                while (::PeekMessage(&msgLocal, NULL, 0, 0, PM_REMOVE))
+                {
+                    if (msgLocal.message == WM_OPENAI_STREAM_CHUNK)
+                    {
+                        auto *p = reinterpret_cast<std::string *>(msgLocal.lParam);
+
+                        /**
+                         * Handle thinking sections in streaming responses
+                         *
+                         * When streaming is enabled, each chunk is processed separately
+                         * to filter out <think>...</think> sections. Due to the nature of
+                         * streaming, sections that span multiple chunks may be partially retained.
+                         *
+                         * If complete filtering is needed, use non-streaming mode instead.
+                         * The user can control this behavior with the show_reasoning=0|1 setting.
+                         */
+                        std::string processedChunk = ResponseParsers::processThinkingSections(*p);
+
+                        // Get current cursor position
+                        Sci_Position currentPos = ::SendMessage(curScintilla, SCI_GETCURRENTPOS, 0, 0);
+                        // Insert text at cursor position
+                        ::SendMessageA(curScintilla, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(processedChunk.c_str()));
+                        // Move cursor to the end of the newly inserted text
+                        Sci_Position newPos = currentPos + processedChunk.length();
+                        ::SendMessage(curScintilla, SCI_GOTOPOS, newPos, 0);
+                        delete p;
+                    }
+                    ::TranslateMessage(&msgLocal);
+                    ::DispatchMessage(&msgLocal);
+                }
+                ::Sleep(10);
+            }
+            CURLcode res = futureRes.get();
+
+            // Give a small delay to ensure all chunks have been received and queued
+            ::Sleep(50);
+
+            // After curl finishes, process any remaining message chunks that might be in the queue
+            // This addresses an issue where the last part of streaming responses can be cut off
+            MSG finalChunks;
+            while (::PeekMessage(&finalChunks, NULL, WM_OPENAI_STREAM_CHUNK, WM_OPENAI_STREAM_CHUNK, PM_REMOVE))
+            {
+                if (finalChunks.message == WM_OPENAI_STREAM_CHUNK)
+                {
+                    auto *p = reinterpret_cast<std::string *>(finalChunks.lParam);
+                    std::string processedChunk = ResponseParsers::processThinkingSections(*p);
+
+                    // Get current cursor position
+                    Sci_Position currentPos = ::SendMessage(curScintilla, SCI_GETCURRENTPOS, 0, 0);
+                    // Insert text at cursor position
+                    ::SendMessageA(curScintilla, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(processedChunk.c_str()));
+                    // Move cursor to the end of the newly inserted text
+                    Sci_Position newPos = currentPos + processedChunk.length();
+                    ::SendMessage(curScintilla, SCI_GOTOPOS, newPos, 0);
+                    delete p;
+                }
+            }
+
+            // Get the HTTP status code to check for API errors
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+            curl_easy_cleanup(curl);
+            curl_slist_free_all(headers);
+
+            // Check both CURL status and HTTP status code
+            ok = (res == CURLE_OK && (http_code >= 200 && http_code < 300));
+
+            // If there was an HTTP error but CURL succeeded, capture the error response
+            if (res == CURLE_OK && (http_code < 200 || http_code >= 300))
+            {
+                // For streaming errors, we might have received an error message
+                // Check message queue for any error content
+                MSG errorMsg;
+                while (::PeekMessage(&errorMsg, NULL, WM_OPENAI_STREAM_CHUNK, WM_OPENAI_STREAM_CHUNK, PM_REMOVE))
+                {
+                    auto *p = reinterpret_cast<std::string *>(errorMsg.lParam);
+                    response += *p;
+                    delete p;
+                }
+            }
+        }
+        else
+        {
+            ok = callOpenAI(url, proxy, request, response);
+        }
         if (!ok)
         {
             _loaderDlg.display(false);
 
-            // Try to extract error details from the response JSON
             std::wstring errorMsg = L"Failed to connect OpenAI API.";
             try
             {
@@ -274,8 +681,6 @@ namespace OpenAIClientImpl
             }
             catch (...)
             {
-                // If we can't parse the response as JSON, and debug mode is on,
-                // show the raw response
                 if (debugMode && !response.empty())
                 {
                     std::wstring wideResponse = multiByteToWideChar(response.c_str());
@@ -287,60 +692,43 @@ namespace OpenAIClientImpl
             return;
         }
 
-        // Parse response JSON
-        std::string replyText;
-        try
+        // For non-streaming mode, we need to parse the response and update the text
+        if (!streaming)
         {
-            auto respJson = json::parse(response);
-            if (respJson.contains("choices") && respJson["choices"].is_array() && !respJson["choices"].empty())
+            auto parser = ResponseParsers::getParserForEndpoint(configAPIValue_responseType);
+            std::string replyText = parser(response);
+
+            if (debugMode && replyText.find("[Failed to parse") == 0)
             {
-                replyText = respJson["choices"][0]["message"]["content"].get<std::string>();
+                replyText += "\nRaw response: " + response;
             }
-            else
+
+            std::string finalText;
+            if (isKeepQuestion)
             {
-                // Show more detailed error in debug mode
-                if (debugMode)
+                // Use only a single newline for Ollama responses to reduce excessive spacing
+                if (configAPIValue_responseType == L"ollama")
                 {
-                    replyText = "[No valid response from OpenAI. Response: " + response + "]";
+                    finalText = selectedText + "\n" + replyText;
                 }
                 else
                 {
-                    replyText = "[No response from OpenAI]";
+                    finalText = selectedText + "\n\n" + replyText;
                 }
-            }
-        }
-        catch (const std::exception &e)
-        {
-            if (debugMode)
-            {
-                replyText = "[Failed to parse OpenAI response: ";
-                replyText += e.what();
-                replyText += "\nResponse: " + response + "]";
             }
             else
             {
-                replyText = "[Failed to parse OpenAI response]";
+                finalText = replyText;
             }
-        }
 
-        // Format the response based on "keep my question" preference
-        std::string finalText;
-        if (isKeepQuestion)
-        {
-            finalText = selectedText + "\n\n" + replyText;
-        }
-        else
-        {
-            finalText = replyText;
-        }
+            // Replace selected text with the response
+            replaceSelected(curScintilla, finalText);
+        } // In streaming mode, the text is already in the editor
 
-        // Replace selected text with response
-        replaceSelected(curScintilla, finalText); // Calculate elapsed time
         auto endTime = std::chrono::high_resolution_clock::now();
         auto elapsedMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
         double elapsedSeconds = elapsedMilliseconds / 1000.0;
 
-        // If in debug mode, show elapsed time in a status message
         if (debugMode)
         {
             TCHAR timeMsg[128];
@@ -348,7 +736,6 @@ namespace OpenAIClientImpl
             ::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)timeMsg);
         }
 
-        // Close the loader dialog when done
         _loaderDlg.display(false);
     }
 } // namespace OpenAIClientImpl

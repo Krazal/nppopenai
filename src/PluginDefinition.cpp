@@ -1,4 +1,4 @@
-﻿// This file is part of NppOpenAI, a Notepad++ plugin that integrates OpenAI's API
+﻿// This file is part of NppOpenAI, a Notepad++ plugin that integrates OpenAI APIs with Notepad++
 // Copyright (C)2022 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@
 #include "UIHelpers.h"	   // UI-related functions for menus and dialogs
 
 // Libraries for file operations, cURL, and JSON handling
+#include <string> // For std::wstring
 #include <wchar.h>
 #include <shlwapi.h>
 #include <curl/curl.h>
@@ -71,7 +72,9 @@ bool debugMode = false;
 
 // Configuration variables for OpenAI API
 std::wstring configAPIValue_secretKey = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // API key
-std::wstring configAPIValue_baseURL = TEXT("https://api.openai.com/");			// API base URL (trailing '/' gets removed)
+std::wstring configAPIValue_baseURL = TEXT("https://api.openai.com/v1/");		// API base URL
+std::wstring configAPIValue_chatRoute = TEXT("chat/completions");				// Chat completions route path
+std::wstring configAPIValue_responseType = TEXT("openai");						// Response format type
 std::wstring configAPIValue_proxyURL = TEXT("0");								// Proxy URL (0 = no proxy)
 std::wstring configAPIValue_model = TEXT("gpt-4o-mini");						// Default LLM model
 std::wstring configAPIValue_instructions = TEXT("");							// System message for API requests
@@ -80,6 +83,8 @@ std::wstring configAPIValue_maxTokens = TEXT("0");								// 0 = no limit, other
 std::wstring configAPIValue_topP = TEXT("0.8");									// Nucleus sampling parameter
 std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition penalty
 std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
+std::wstring configAPIValue_streaming = TEXT("0");								// Add streaming flag ("1" to enable streaming responses from OpenAI)
+std::wstring configAPIValue_showReasoning = TEXT("0");							// Show reasoning sections ("1" to show, "0" to hide)
 bool isKeepQuestion = true;														// Keep original question in response
 std::vector<std::wstring> chatHistory = {};										// Chat history for context
 bool isLoadConfigAlertShown = false;											// Show alert only once for loading config
@@ -230,9 +235,9 @@ void loadConfigWithoutPluginSettings()
 	{
 		// Show alert only once for loading config
 		::MessageBox(nppData._nppHandle,
-			TEXT("When saving configuration and instruction files, the settings are loaded automatically."),
-			TEXT("NppOpenAI: No manual loading required"),
-			MB_ICONINFORMATION);
+					 TEXT("When saving configuration and instruction files, the settings are loaded automatically."),
+					 TEXT("NppOpenAI: No manual loading required"),
+					 MB_ICONINFORMATION);
 		isLoadConfigAlertShown = true;
 	}
 	loadConfig(false);
