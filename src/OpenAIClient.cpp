@@ -349,13 +349,14 @@ namespace OpenAIClientImpl
         ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&which);
         if (which == -1)
             return;
-        HWND curScintilla = (which == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle;
-
-        // Record start time for elapsed time calculation
+        HWND curScintilla = (which == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle; // Record start time for elapsed time calculation
         auto startTime = std::chrono::high_resolution_clock::now();
 
         // Show the loader dialog and make sure it's displayed before continuing
         _loaderDlg.doDialog();
+
+        // Reset the timer to ensure it starts from zero for this operation
+        _loaderDlg.resetTimer();
 
         // Force a repaint and ensure dialog is visible by processing messages
         ::UpdateWindow(_loaderDlg.getHSelf());
@@ -403,10 +404,10 @@ namespace OpenAIClientImpl
             {
                 // User canceled, no need to show loader again
                 return;
-            }
-
-            // Re-show the loader dialog as we're continuing
+            } // Re-show the loader dialog as we're continuing
             _loaderDlg.doDialog();
+            // Reset the timer for the new operation
+            _loaderDlg.resetTimer();
             ::UpdateWindow(_loaderDlg.getHSelf());
         }
         std::wstring systemPrompt;
