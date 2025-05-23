@@ -15,6 +15,9 @@
 #include "loaderResource.h"
 #include <commctrl.h>
 
+// Add extern declaration for configAPIValue_model
+extern std::wstring configAPIValue_model;
+
 /**
  * Dialog for displaying a loading animation
  *
@@ -26,6 +29,25 @@ class LoaderDlg : public StaticDialog
 {
 public:
 	LoaderDlg() : _startTime(0), _elapsedSeconds(0) {}
+
+	/**
+	 * Resets the timer to zero and restarts counting
+	 *
+	 * Call this whenever a new operation starts, even if the dialog is already visible
+	 */
+	void resetTimer()
+	{
+		_startTime = ::GetTickCount64();
+		_elapsedSeconds = 0;
+
+		// Update the elapsed time text immediately
+		if (isCreated() && ::IsWindowVisible(_hSelf))
+		{
+			TCHAR timeText[128];
+			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), static_cast<unsigned long long>(0));
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_ESTIMATE, timeText);
+		}
+	}
 
 	/**
 	 * Creates the loading dialog with an animated progress bar
@@ -42,7 +64,6 @@ public:
 		HWND progressBar = ::GetDlgItem(_hSelf, ID_PLUGINNPPOPENAI_LOADING_PROGRESS); // See more: `LoaderDlg.rc`
 		::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);						  // 20ms refresh rate (1: too fast; 50: too slow)
 	};
-
 	/**
 	 * Creates and displays the loading dialog
 	 *
@@ -62,6 +83,11 @@ public:
 			if (progressBar)
 				::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
 		}
+
+		// Update model name text to show current model from config
+		TCHAR modelText[128];
+		swprintf(modelText, 128, TEXT("«%s» AI model will respond"), configAPIValue_model.c_str());
+		::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
 
 		// Show and update window
 		display();
