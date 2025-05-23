@@ -15,6 +15,9 @@
 #include "loaderResource.h"
 #include <commctrl.h>
 
+// Add extern declaration for configAPIValue_model
+extern std::wstring configAPIValue_model;
+
 /**
  * Dialog for displaying a loading animation
  *
