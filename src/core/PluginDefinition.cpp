@@ -16,15 +16,15 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "PluginDefinition.h"
-#include "DockingFeature/LoaderDlg.h"
-#include "DockingFeature/ChatSettingsDlg.h"
+#include "ui/dialogs/LoaderDlg.h"
+#include "ui/dialogs/ChatSettingsDlg.h"
 #include "menuCmdID.h"
-#include "ConfigManager.h" // Configuration management functions
-#include "PromptManager.h" // System prompts management
-#include "EncodingUtils.h" // UTF-8 / wide-char conversion utilities
-#include "DebugUtils.h"	   // Debug logging functions
-#include "OpenAIClient.h"  // API client wrapper for OpenAI integration
-#include "UIHelpers.h"	   // UI-related functions for menus and dialogs
+#include "config/ConfigManager.h" // Configuration management functions
+#include "config/PromptManager.h" // System prompts management
+#include "EncodingUtils.h"		  // UTF-8 / wide-char conversion utilities
+#include "DebugUtils.h"			  // Debug logging functions
+#include "OpenAIClient.h"		  // API client wrapper for OpenAI integration
+#include "ui/UIHelpers.h"		  // UI-related functions for menus and dialogs
 
 // Libraries for file operations, cURL, and JSON handling
 #include <string> // For std::wstring

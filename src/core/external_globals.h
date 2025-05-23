@@ -10,8 +10,8 @@
 #define EXTERNAL_GLOBALS_H
 
 #include <windows.h>
-#include "DockingFeature/LoaderDlg.h"
-#include "DockingFeature/ChatSettingsDlg.h"
+#include "ui/dialogs/LoaderDlg.h"
+#include "ui/dialogs/ChatSettingsDlg.h"
 #include <string>
 #include "PluginInterface.h"
 

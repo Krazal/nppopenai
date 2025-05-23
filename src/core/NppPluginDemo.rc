@@ -89,7 +89,7 @@ END
 #endif    // not APSTUDIO_INVOKED
 
 // Custom objects (toolbar icons)
-IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT    BITMAP  "Resources/toolbar_icon_chat_16x16.bmp"
-IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT    ICON    "Resources/toolbar_icon_chat_32x32.ico"
-IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT_DM ICON    "Resources/toolbar_icon_chat_32x32_dm.ico"
+IDB_PLUGINNPPOPENAI_TOOLBAR_CHAT    BITMAP  "../Resources/toolbar_icon_chat_16x16.bmp"
+IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT    ICON    "../Resources/toolbar_icon_chat_32x32.ico"
+IDI_PLUGINNPPOPENAI_TOOLBAR_CHAT_DM ICON    "../Resources/toolbar_icon_chat_32x32_dm.ico"
 // END: Custom objects (toolbar icons)

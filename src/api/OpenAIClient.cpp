@@ -9,17 +9,17 @@
 
 #include <windows.h>
 #include "OpenAIClient.h"
-#include "external_globals.h"
+#include "core/external_globals.h"
 #include "EncodingUtils.h" // for toUTF8
 #include <curl/curl.h>
 #include "Sci_Position.h"
 #include "Scintilla.h"
-#include "PromptManager.h"     // for Prompt struct and related functions
-#include "ResponseParsers.h"   // for different API response parsers and thinking section processing
-#include "RequestFormatters.h" // for different API request formatters
-#include <chrono>              // For timing API calls
-#include <future>              // for async spinner responsiveness
-#include <sstream>             // For string stream processing
+#include "config/PromptManager.h" // for Prompt struct and related functions
+#include "ResponseParsers.h"      // for different API response parsers and thinking section processing
+#include "RequestFormatters.h"    // for different API request formatters
+#include <chrono>                 // For timing API calls
+#include <future>                 // for async spinner responsiveness
+#include <sstream>                // For string stream processing
 
 /**
  * Streaming API response handling

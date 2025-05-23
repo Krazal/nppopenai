@@ -9,7 +9,7 @@
 
 #include <windows.h>
 #include "UIHelpers.h"
-#include "external_globals.h"
+#include "core/external_globals.h"
 #include "PluginDefinition.h" // For toolbar icon definitions
 #include <curl/curl.h>        // For LIBCURL_VERSION
 #include <nlohmann/json.hpp>  // For JSON version constants

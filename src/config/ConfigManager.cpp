@@ -9,9 +9,9 @@
 #include <windows.h>
 #include <shlwapi.h>
 #include "ConfigManager.h"
-#include "external_globals.h" // for global variables and functions
-#include "EncodingUtils.h"    // for UTF-8 conversions
-#include "PromptManager.h"    // for parsing instructions file
+#include "core/external_globals.h" // for global variables and functions
+#include "EncodingUtils.h"         // for UTF-8 conversions
+#include "PromptManager.h"         // for parsing instructions file
 #include <cstdio>
 #include <vector>
 

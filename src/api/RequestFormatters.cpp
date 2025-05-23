@@ -15,7 +15,7 @@
  */
 
 #include "RequestFormatters.h"
-#include "EncodingUtils.h" // for toUTF8
+#include "utils/EncodingUtils.h" // for toUTF8
 #include <string>
 #include <stdexcept>
 #include <sstream>
