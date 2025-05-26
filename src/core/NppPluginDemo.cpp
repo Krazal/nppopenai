@@ -11,6 +11,14 @@
  */
 
 #include "PluginDefinition.h"
+#include "editor/EditorInterface.h"
+#include "Scintilla.h"
+#include "core/external_globals.h"
+#include "utils/EncodingUtils.h"
+#include <fstream>
+
+// Define streaming message used in OpenAIClient.cpp
+#define WM_OPENAI_STREAM_CHUNK (WM_APP + 100)
 
 extern FuncItem funcItem[nbFunc];
 extern NppData nppData;
@@ -138,16 +146,92 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode)
 /**
  * Processes custom messages sent to the plugin
  *
- * This function can be used to handle custom Windows messages sent to the plugin.
- * Currently, it does not process any messages.
+ * This function handles custom Windows messages sent to the plugin including
+ * streaming response chunks from OpenAI.
  *
  * @param Message The message identifier
  * @param wParam Additional message information
  * @param lParam Additional message information
  * @return TRUE if the message was processed, FALSE otherwise
  */
-extern "C" __declspec(dllexport) LRESULT messageProc(UINT /*Message*/, WPARAM /*wParam*/, LPARAM /*lParam*/)
+extern "C" __declspec(dllexport) LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
+	// Suppress unused parameter warning
+	(void)wParam;
+	// Handle streaming chunks from OpenAI API
+	if (Message == WM_OPENAI_STREAM_CHUNK)
+	{
+		try
+		{
+			// Get the chunk data from lParam
+			std::string *pChunk = reinterpret_cast<std::string *>(lParam);
+			if (pChunk && !pChunk->empty())
+			{ // When debugging is enabled, show what we're receiving
+				if (debugMode)
+				{
+					static int receivedCount = 0;
+					receivedCount++;
+					std::wstring status = L"Stream chunk #" + std::to_wstring(receivedCount) + L" received: [" +
+										  multiByteToWideChar(pChunk->substr(0, 10).c_str()) + L"...]";
+					::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)status.c_str());
+
+					// Also log to file
+					std::ofstream msgFile("C:\\temp\\messages_received.txt", std::ios::app);
+					if (msgFile.is_open())
+					{
+						msgFile << "Message #" << receivedCount << ": [" << *pChunk << "]" << std::endl;
+						msgFile.close();
+					}
+				}
+
+				// Use the stored Scintilla handle if available, otherwise get the current one
+				HWND curScintilla = s_streamTargetScintilla;
+				if (!curScintilla)
+				{
+					curScintilla = EditorInterface::getCurrentScintilla();
+				}
+
+				if (curScintilla)
+				{
+					// Insert the chunk text at the current cursor position
+					::SendMessageA(curScintilla, SCI_REPLACESEL, 0,
+								   reinterpret_cast<LPARAM>(pChunk->c_str()));
+
+					if (debugMode)
+					{
+						std::ofstream msgFile("C:\\temp\\messages_received.txt", std::ios::app);
+						if (msgFile.is_open())
+						{
+							msgFile << "  -> Inserted into editor successfully" << std::endl;
+							msgFile.close();
+						}
+					}
+				}
+				else
+				{
+					if (debugMode)
+					{
+						std::ofstream msgFile("C:\\temp\\messages_received.txt", std::ios::app);
+						if (msgFile.is_open())
+						{
+							msgFile << "  -> ERROR: No Scintilla handle available!" << std::endl;
+							msgFile.close();
+						}
+					}
+				}
+			}
+
+			// Free the memory allocated for the chunk
+			delete pChunk;
+			return TRUE;
+		}
+		catch (...)
+		{
+			// Log error or handle exception
+			return FALSE;
+		}
+	}
+
 	return TRUE;
 }
 

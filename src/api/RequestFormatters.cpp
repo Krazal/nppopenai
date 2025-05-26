@@ -15,7 +15,7 @@
  */
 
 #include "RequestFormatters.h"
-#include "utils/EncodingUtils.h" // for toUTF8
+#include "../utils/EncodingUtils.h" // for toUTF8
 #include <string>
 #include <stdexcept>
 #include <sstream>
@@ -198,13 +198,56 @@ namespace RequestFormatters
         if (topP != 1.0f)
         {
             requestJson["top_p"] = topP;
-        }
-
-        // Claude doesn't support frequency_penalty and presence_penalty
+        } // Claude doesn't support frequency_penalty and presence_penalty
 
         return requestJson.dump();
     }
 
+    std::string formatSimpleRequest(
+        const std::wstring &model,
+        const std::wstring &prompt,
+        const std::wstring &systemPrompt,
+        float temperature,
+        int maxTokens,
+        float topP,
+        float frequencyPenalty,
+        float presencePenalty)
+    {
+        // Mark unused parameters to avoid compiler warnings
+        (void)topP;             // Simple APIs typically don't use top_p
+        (void)frequencyPenalty; // Simple APIs typically don't use frequency_penalty
+        (void)presencePenalty;  // Simple APIs typically don't use presence_penalty
+
+        json requestJson;
+
+        // Convert wstring to UTF-8 string
+        std::string modelStr = toUTF8(model);
+        std::string promptStr = toUTF8(prompt);
+        std::string systemPromptStr = toUTF8(systemPrompt);
+
+        // Simple API structure - common fields used by lightweight backends
+        requestJson["model"] = modelStr;
+        requestJson["prompt"] = promptStr;
+
+        // Add system prompt if provided
+        if (!systemPromptStr.empty())
+        {
+            requestJson["system"] = systemPromptStr;
+        }
+
+        // Simple API typically supports basic parameters
+        if (temperature != 1.0f)
+        {
+            requestJson["temperature"] = temperature;
+        }
+
+        if (maxTokens > 0)
+        {
+            requestJson["max_tokens"] = maxTokens;
+        }
+
+        return requestJson.dump();
+    }
     FormatterFunction getFormatterForEndpoint(const std::wstring &endpointType)
     {
         // Convert wstring to string for comparison
@@ -221,6 +264,10 @@ namespace RequestFormatters
         else if (type == "claude")
         {
             return formatClaudeRequest;
+        }
+        else if (type == "simple")
+        {
+            return formatSimpleRequest;
         }
         else
         {

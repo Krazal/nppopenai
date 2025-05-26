@@ -50,7 +50,7 @@ extern bool isKeepQuestion;                          // Flag for "keep question"
 extern bool debugMode;                               // Flag for debug mode
 extern std::wstring configAPIValue_secretKey;        // API secret key (e.g., "sk-...")
 extern std::wstring configAPIValue_baseURL;          // Base URL for API requests (e.g., "https://api.openai.com/v1/")
-extern std::wstring configAPIValue_chatRoute;        // Chat completions route path (e.g., "chat/completions")
+extern std::wstring configAPIValue_chatRoute;        // Chat completions route path (e.g., "chat/completions") - corresponds to route_chat_completions
 extern std::wstring configAPIValue_responseType;     // Response format type (openai, ollama, claude, simple)
 extern std::wstring configAPIValue_proxyURL;         // Proxy URL for API requests (e.g., "http://proxy:8080" or "0" for none)
 extern std::wstring configAPIValue_model;            // Model name for API requests
@@ -62,5 +62,6 @@ extern std::wstring configAPIValue_frequencyPenalty; // Frequency penalty for AP
 extern std::wstring configAPIValue_presencePenalty;  // Presence penalty for API requests
 extern std::wstring configAPIValue_streaming;        // Add streaming flag ("1" for enabled, "0" for disabled)
 extern std::wstring configAPIValue_showReasoning;    // Show reasoning sections ("1" to show <think></think> sections, "0" to remove them)
+extern HWND s_streamTargetScintilla;                 // Global handle to the Scintilla editor used for streaming responses
 
 #endif // EXTERNAL_GLOBALS_H

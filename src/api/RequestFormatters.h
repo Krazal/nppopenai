@@ -68,6 +68,20 @@ namespace RequestFormatters
         float presencePenalty);
 
     /**
+     * Format request for simple completion API
+     * Format: {"model": "...", "prompt": "...", "system": "...", "temperature": ...}
+     */
+    std::string formatSimpleRequest(
+        const std::wstring &model,
+        const std::wstring &prompt,
+        const std::wstring &systemPrompt,
+        float temperature,
+        int maxTokens,
+        float topP,
+        float frequencyPenalty,
+        float presencePenalty);
+
+    /**
      * Get the appropriate formatter function for an endpoint
      * @param endpointType The endpoint type identifier from config
      * @return The formatter function to use

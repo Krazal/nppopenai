@@ -1,10 +1,10 @@
-// filepath: src/UIHelpers.cpp
 /**
  * UIHelpers.cpp - User interface helper functions for NppOpenAI
  *
  * This file contains utility functions for managing UI elements of the plugin,
  * including menu items, toolbar icons, dialog boxes, and general user interaction.
- * It handles user preference toggling and visual state management.
+ * It handles user preference toggling (including the "Keep my question" setting that
+ * controls whether the original query is preserved in AI responses) and visual state management.
  */
 
 #include <windows.h>

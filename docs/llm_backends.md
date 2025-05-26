@@ -24,7 +24,7 @@ NppOpenAI supports various LLM backends through its flexible endpoint configurat
 ```ini
 [API]
 api_url=https://api.openai.com/v1/
-chat_completions_route=chat/completions
+route_chat_completions=chat/completions
 response_type=openai
 model=gpt-4o-mini
 ```
@@ -34,7 +34,7 @@ model=gpt-4o-mini
 ```ini
 [API]
 api_url=https://your-resource.openai.azure.com/openai/deployments/your-deployment-name/
-chat_completions_route=
+route_chat_completions=
 response_type=openai
 model=gpt-35-turbo
 ```
@@ -44,7 +44,7 @@ model=gpt-35-turbo
 ```ini
 [API]
 api_url=http://localhost:11434/
-chat_completions_route=api/generate
+route_chat_completions=api/generate
 response_type=ollama
 model=llama3
 ```
@@ -61,7 +61,7 @@ When using Ollama API (`response_type=ollama`), the plugin will:
 ```ini
 [API]
 api_url=https://api.anthropic.com/v1/
-chat_completions_route=messages
+route_chat_completions=messages
 response_type=claude
 model=claude-3-opus-20240229
 ```
@@ -78,7 +78,7 @@ When using Claude API (`response_type=claude`), the plugin will:
 ```ini
 [API]
 api_url=http://localhost:1234/
-chat_completions_route=v1/chat/completions
+route_chat_completions=v1/chat/completions
 response_type=openai
 model=llama3
 ```
@@ -88,7 +88,7 @@ model=llama3
 ```ini
 [API]
 api_url=http://localhost:8000/
-chat_completions_route=v1/chat/completions
+route_chat_completions=v1/chat/completions
 response_type=openai
 model=TheBloke/zephyr-7B-beta
 ```

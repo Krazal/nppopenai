@@ -10,7 +10,7 @@ Add the following to your `NppOpenAI.ini` file:
 [API]
 secret_key=  # No key needed for local Ollama
 api_url=http://localhost:11434/
-chat_completions_route=api/generate
+route_chat_completions=api/generate
 response_type=ollama
 model=llama3  # or any model you have pulled in Ollama
 ```
@@ -32,14 +32,14 @@ For specialized use cases, you can create different configurations for different
 ```ini
 # For creative writing tasks
 api_url=http://localhost:11434/
-chat_completions_route=api/generate
+route_chat_completions=api/generate
 response_type=ollama
 model=mistral
 temperature=0.9
 
 # For code generation
 api_url=http://localhost:11434/
-chat_completions_route=api/generate
+route_chat_completions=api/generate
 response_type=ollama
 model=codellama
 temperature=0.3

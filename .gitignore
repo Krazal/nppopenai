@@ -97,4 +97,5 @@ bin32/
 .vscode/
 vs.proj/
 
+*-instructions.md
 

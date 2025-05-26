@@ -100,7 +100,7 @@ std::string toUTF8(const std::wstring &wide)
 TCHAR *multiByteToWideChar(const char *utf8)
 {
     int len = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
-    TCHAR *wide = new TCHAR[len];
+    wchar_t *wide = new wchar_t[len];
     MultiByteToWideChar(CP_UTF8, 0, utf8, -1, wide, len);
-    return wide;
+    return reinterpret_cast<TCHAR *>(wide);
 }

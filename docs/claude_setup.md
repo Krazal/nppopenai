@@ -10,7 +10,7 @@ Add the following to your `NppOpenAI.ini` file:
 [API]
 secret_key=YOUR_CLAUDE_API_KEY  # Claude API key
 api_url=https://api.anthropic.com/v1/
-chat_completions_route=messages
+route_chat_completions=messages
 response_type=claude
 model=claude-3-haiku-20240307  # or another Claude model
 ```
@@ -34,7 +34,7 @@ For specialized use cases, you can create different configurations:
 ```ini
 # For technical documents and complex reasoning
 api_url=https://api.anthropic.com/v1/
-chat_completions_route=messages
+route_chat_completions=messages
 response_type=claude
 model=claude-3-opus-20240229
 temperature=0.5
@@ -42,7 +42,7 @@ max_tokens=4000
 
 # For creative writing
 api_url=https://api.anthropic.com/v1/
-chat_completions_route=messages
+route_chat_completions=messages
 response_type=claude
 model=claude-3-sonnet-20240229
 temperature=0.9
