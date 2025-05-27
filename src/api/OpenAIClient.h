@@ -31,18 +31,7 @@ namespace OpenAIClientImpl
      * 5. Processes the response
      * 6. Updates the editor with the generated text
      */
-    void askChatGPT();
-
-    /**
-     * Handle non-streaming API responses
-     *
-     * @param editor Handle to the Scintilla editor
-     * @param response The API response
-     * @param selectedText The original user query text
-     */
-    void handleNonStreamingResponse(HWND editor, const std::string &response, const std::string &selectedText);
-
-    /**
+    void askChatGPT();    /**
      * Display an error message with API error details
      *
      * @param errorResponse The error response from the API

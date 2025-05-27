@@ -159,40 +159,8 @@ void instructionsFileError(const WCHAR *errorMessage, const WCHAR *errorCaption)
 namespace OpenAIClientImpl
 {
     /**
-     * Handle non-streaming API responses
+     * Display an error message with API error details
      */
-    void handleNonStreamingResponse(HWND editor, const std::string &response, const std::string &selectedText)
-    {
-        auto parser = ResponseParsers::getParserForEndpoint(configAPIValue_responseType);
-        std::string replyText = parser(response);
-
-        if (debugMode && replyText.find("[Failed to parse") == 0)
-        {
-            replyText += "\nRaw response: " + response;
-        }
-
-        std::string finalText;
-        if (isKeepQuestion)
-        {
-            // Use only a single newline for Ollama responses to reduce excessive spacing
-            if (configAPIValue_responseType == L"ollama")
-            {
-                finalText = selectedText + "\n" + replyText;
-            }
-            else
-            {
-                finalText = selectedText + "\n\n" + replyText;
-            }
-        }
-        else
-        {
-            finalText = replyText;
-        }
-
-        EditorInterface::replaceSelectedText(editor, finalText);
-    } /**
-       * Display an error message with API error details
-       */
     void displayApiError(const std::string &response)
     {
         std::wstring errorMsg = L"Failed to connect to API.";
@@ -321,28 +289,10 @@ namespace OpenAIClientImpl
             s_streamTargetScintilla = curScintilla; // Perform streaming request with the correct message type
             ok = HTTPClient::performStreamingRequest(url, request, apiType, secretKey,
                                                      nppData._nppHandle, // Use nppData._nppHandle as target for messages
-                                                     WM_OPENAI_STREAM_CHUNK, proxy);
-        }
+                                                     WM_OPENAI_STREAM_CHUNK, proxy);        }
         else
         {
-            // For non-streaming mode, also prepare the editor with initial text
-            std::string initialText = "";
-            if (isKeepQuestion)
-            {
-                if (configAPIValue_responseType == L"ollama")
-                {
-                    initialText = selectedText + "\n";
-                }
-                else
-                {
-                    initialText = selectedText + "\n\n";
-                }
-            }
-
-            // Replace selected text with initial text (question + newlines if keeping question)
-            EditorInterface::replaceSelectedText(curScintilla, initialText);
-
-            // Perform regular request
+            // For non-streaming mode, perform regular request
             ok = HTTPClient::performRequest(url, request, response, apiType, secretKey, proxy);
         }
         if (!ok)
@@ -373,8 +323,7 @@ namespace OpenAIClientImpl
             }
 
             instructionsFileError(errorMsg.c_str(), L"NppOpenAI Error");
-            return;
-        } // Handle non-streaming response
+            return;        } // Handle non-streaming response
         if (!streaming)
         {
             // Parse response and extract content using the correct parser
@@ -382,9 +331,40 @@ namespace OpenAIClientImpl
             std::string extractedContent = parser(response);
             if (!extractedContent.empty())
             {
-                // Since we've already set up the initial text (question + newlines if keeping question),
-                // we just need to append the AI response to the current cursor position
-                EditorInterface::insertTextAtCursor(curScintilla, extractedContent);
+                // For non-streaming with keepQuestion, mimic streaming behavior:
+                // Keep the question in place and append the response after it
+                if (isKeepQuestion)
+                {
+                    // Move cursor to end of selection (after the question)
+                    Sci_Position selEnd = ::SendMessage(curScintilla, SCI_GETSELECTIONEND, 0, 0);
+                    ::SendMessage(curScintilla, SCI_SETSEL, selEnd, selEnd);
+                    
+                    // Add appropriate spacing and the response after the question
+                    std::string responseText;
+                    if (configAPIValue_responseType == L"ollama")
+                    {
+                        responseText = "\n" + extractedContent;
+                    }
+                    else
+                    {
+                        responseText = "\n\n" + extractedContent;
+                    }
+                    
+                    // Insert the response after the question
+                    EditorInterface::insertTextAtCursor(curScintilla, responseText);
+                    
+                    // Debug output to verify behavior
+                    if (debugMode)
+                    {
+                        std::string debugMsg = "Non-streaming: Inserted response after question (like streaming mode)";
+                        ::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)debugMsg.c_str());
+                    }
+                }
+                else
+                {
+                    // Replace the selected text entirely with the response
+                    EditorInterface::replaceSelectedText(curScintilla, extractedContent);
+                }
             }
             else
             {

@@ -109,29 +109,26 @@ void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string
 {
     // Get selection range
     Sci_Position selStart = ::SendMessage(editor, SCI_GETSELECTIONSTART, 0, 0);
-    ::SendMessage(editor, SCI_SETTARGETSTART, selStart, 0);
-    ::SendMessage(editor, SCI_SETTARGETEND, ::SendMessage(editor, SCI_GETSELECTIONEND, 0, 0), 0);
+    Sci_Position selEnd = ::SendMessage(editor, SCI_GETSELECTIONEND, 0, 0);
 
-    // Prepare initial text
-    std::string initialText = "";
     if (keepQuestion)
     {
-        // Use only a single newline for Ollama responses to reduce excessive spacing
-        if (responseType == L"ollama")
-        {
-            initialText = selectedText + "\n";
-        }
-        else
-        {
-            initialText = selectedText + "\n\n";
-        }
+        // Keep the question and position cursor after it
+        // Move cursor to the end of selection (after the question)
+        ::SendMessage(editor, SCI_SETSEL, selEnd, selEnd);
+        
+        // Add appropriate spacing after the question
+        std::string spacing = (responseType == L"ollama") ? "\n" : "\n\n";
+        ::SendMessage(editor, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(spacing.c_str()));
     }
-
-    // Replace the selection with the initial text
-    ::SendMessage(editor, SCI_REPLACETARGET, initialText.length(),
-                  reinterpret_cast<LPARAM>(initialText.c_str()));
-
-    // Set cursor at the end of the replacement text to ensure streaming content is appended correctly
-    Sci_Position textEnd = selStart + initialText.length();
-    ::SendMessage(editor, SCI_SETSEL, textEnd, textEnd);
+    else
+    {
+        // Replace the selection entirely (no question kept)
+        ::SendMessage(editor, SCI_SETTARGETSTART, selStart, 0);
+        ::SendMessage(editor, SCI_SETTARGETEND, selEnd, 0);
+        ::SendMessage(editor, SCI_REPLACETARGET, 0, reinterpret_cast<LPARAM>(""));
+        
+        // Position cursor at the start of where the selection was
+        ::SendMessage(editor, SCI_SETSEL, selStart, selStart);
+    }
 }
