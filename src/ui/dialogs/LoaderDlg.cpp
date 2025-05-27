@@ -74,11 +74,9 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 			if (spinnerControl)
 			{
 				::SetWindowText(spinnerControl, spinnerChars[0]);
-			}
-
-			// Set initial static text to model name response
+			} // Set initial static text to model name response
 			TCHAR modelText[128];
-			swprintf(modelText, 128, TEXT("�%s� AI model will respond"), configAPIValue_model.c_str());
+			swprintf(modelText, 128, TEXT("%s AI model will respond"), configAPIValue_model.c_str());
 			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
 
 			// Reset the elapsed time text

@@ -83,10 +83,9 @@ public:
 			if (progressBar)
 				::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
 		}
-
 		// Update model name text to show current model from config
 		TCHAR modelText[128];
-		swprintf(modelText, 128, TEXT("«%s» AI model will respond"), configAPIValue_model.c_str());
+		swprintf(modelText, 128, TEXT("%s AI model will respond"), configAPIValue_model.c_str());
 		::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
 
 		// Show and update window

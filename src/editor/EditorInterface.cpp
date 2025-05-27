@@ -116,7 +116,7 @@ void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string
         // Keep the question and position cursor after it
         // Move cursor to the end of selection (after the question)
         ::SendMessage(editor, SCI_SETSEL, selEnd, selEnd);
-        
+
         // Add appropriate spacing after the question
         std::string spacing = (responseType == L"ollama") ? "\n" : "\n\n";
         ::SendMessage(editor, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(spacing.c_str()));
@@ -127,7 +127,7 @@ void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string
         ::SendMessage(editor, SCI_SETTARGETSTART, selStart, 0);
         ::SendMessage(editor, SCI_SETTARGETEND, selEnd, 0);
         ::SendMessage(editor, SCI_REPLACETARGET, 0, reinterpret_cast<LPARAM>(""));
-        
+
         // Position cursor at the start of where the selection was
         ::SendMessage(editor, SCI_SETSEL, selStart, selStart);
     }
