@@ -81,8 +81,8 @@ void testClaudeFormatter()
     std::cout << "Testing Claude Formatter..." << std::endl;
 
     std::wstring model = L"claude-3-haiku-20240307";
-    std::wstring prompt = L"Explain what a dog is";
-    std::wstring system = L"You are a friendly and knowledgeable teacher specializing in biology and animals";
+    std::wstring prompt = L"Explain quantum physics";
+    std::wstring system = L"You are a physics professor";
     float temperature = 0.3f;
     int maxTokens = 500;
     float topP = 0.9f;

@@ -20,7 +20,6 @@
 #include <chrono>              // For timing API calls
 #include <future>              // for async spinner responsiveness
 #include <sstream>             // For string stream processing
-#include "DockingFeature/LoaderDlg.h" // For loader dialog cancelation
 
 /**
  * Streaming API response handling
@@ -570,10 +569,6 @@ namespace OpenAIClientImpl
             ::SendMessage(curScintilla, SCI_SETSEL, textEnd, textEnd);
             while (futureRes.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready)
             {
-                if (_loaderDlg.isCancelled)
-                {
-					break;
-				}
                 MSG msgLocal; // Renamed to avoid shadowing the outer msg variable
                 while (::PeekMessage(&msgLocal, NULL, 0, 0, PM_REMOVE))
                 {
@@ -614,25 +609,22 @@ namespace OpenAIClientImpl
 
             // After curl finishes, process any remaining message chunks that might be in the queue
             // This addresses an issue where the last part of streaming responses can be cut off
-            if (!_loaderDlg.isCancelled)
+            MSG finalChunks;
+            while (::PeekMessage(&finalChunks, NULL, WM_OPENAI_STREAM_CHUNK, WM_OPENAI_STREAM_CHUNK, PM_REMOVE))
             {
-                MSG finalChunks;
-                while (::PeekMessage(&finalChunks, NULL, WM_OPENAI_STREAM_CHUNK, WM_OPENAI_STREAM_CHUNK, PM_REMOVE))
+                if (finalChunks.message == WM_OPENAI_STREAM_CHUNK)
                 {
-                    if (finalChunks.message == WM_OPENAI_STREAM_CHUNK)
-                    {
-                        auto* p = reinterpret_cast<std::string*>(finalChunks.lParam);
-                        std::string processedChunk = ResponseParsers::processThinkingSections(*p);
+                    auto *p = reinterpret_cast<std::string *>(finalChunks.lParam);
+                    std::string processedChunk = ResponseParsers::processThinkingSections(*p);
 
-                        // Get current cursor position
-                        Sci_Position currentPos = ::SendMessage(curScintilla, SCI_GETCURRENTPOS, 0, 0);
-                        // Insert text at cursor position
-                        ::SendMessageA(curScintilla, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(processedChunk.c_str()));
-                        // Move cursor to the end of the newly inserted text
-                        Sci_Position newPos = currentPos + processedChunk.length();
-                        ::SendMessage(curScintilla, SCI_GOTOPOS, newPos, 0);
-                        delete p;
-                    }
+                    // Get current cursor position
+                    Sci_Position currentPos = ::SendMessage(curScintilla, SCI_GETCURRENTPOS, 0, 0);
+                    // Insert text at cursor position
+                    ::SendMessageA(curScintilla, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(processedChunk.c_str()));
+                    // Move cursor to the end of the newly inserted text
+                    Sci_Position newPos = currentPos + processedChunk.length();
+                    ::SendMessage(curScintilla, SCI_GOTOPOS, newPos, 0);
+                    delete p;
                 }
             }
 
@@ -664,14 +656,6 @@ namespace OpenAIClientImpl
         {
             ok = callOpenAI(url, proxy, request, response);
         }
-
-        // User canceled the operation, hide the loader and return
-        if (_loaderDlg.isCancelled)
-        {
-            return;
-		}
-
-		// Something went wrong, hide the loader and show an error message
         if (!ok)
         {
             _loaderDlg.display(false);
