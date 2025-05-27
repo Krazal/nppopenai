@@ -15,9 +15,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#include "../PluginDefinition.h"
+#include "core/PluginDefinition.h"
 #include "LoaderDlg.h"
-#include "../external_globals.h"
+#include "core/external_globals.h"
 
 extern NppData nppData;
 
@@ -78,7 +78,7 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 
 			// Set initial static text to model name response
 			TCHAR modelText[128];
-			swprintf(modelText, 128, TEXT("“%s” AI model will respond"), configAPIValue_model.c_str());
+			swprintf(modelText, 128, TEXT("ï¿½%sï¿½ AI model will respond"), configAPIValue_model.c_str());
 			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
 
 			// Reset the elapsed time text

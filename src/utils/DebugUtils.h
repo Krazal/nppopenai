@@ -10,8 +10,8 @@
 #pragma once
 #include <windows.h>
 #include <string>
-#include "EncodingUtils.h" // for toUTF8, multiByteToWideChar
-#include "OpenAIClient.h"  // for replaceSelected
+#include "EncodingUtils.h"    // for toUTF8, multiByteToWideChar
+#include "api/OpenAIClient.h" // for replaceSelected
 
 /**
  * Toggles the plugin's debug mode on or off

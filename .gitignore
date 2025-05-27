@@ -89,7 +89,7 @@ $RECYCLE.BIN/
 bin64/
 bin32/
 
-README_PRIVATE.md
+*_PRIVATE.md
 *.exp
 *.lib
 
@@ -97,4 +97,5 @@ README_PRIVATE.md
 .vscode/
 vs.proj/
 
+*-instructions.md
 

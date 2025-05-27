@@ -1,10 +1,10 @@
 /**
- * OpenAIClient.h - Interface for communicating with OpenAI API
+ * OpenAIClient.h - Interface for communicating with LLM APIs
  *
- * This file declares functions for sending requests to the OpenAI API,
+ * This file declares functions for sending requests to various LLM APIs (OpenAI, Claude, Ollama),
  * processing responses, and updating the editor with the generated content.
- * It provides both high-level functions for plugin commands and low-level
- * utilities for HTTP communication.
+ * It provides high-level functions for plugin commands and callback functions
+ * for the HTTP client module.
  */
 
 #pragma once
@@ -21,30 +21,23 @@ using json = nlohmann::json;
 namespace OpenAIClientImpl
 {
     /**
-     * Main plugin function that sends current text selection to OpenAI and processes the response
+     * Main plugin function that sends current text selection to an LLM API and processes the response
      *
      * This function:
      * 1. Gets the currently selected text in Notepad++
      * 2. Shows a loading dialog
      * 3. Prepares an API request with the selected text and configured parameters
-     * 4. Sends the request to the OpenAI API
+     * 4. Sends the request to the configured LLM API
      * 5. Processes the response
      * 6. Updates the editor with the generated text
-     * 7. Updates chat history if chat mode is enabled
      */
-    void askChatGPT();
+    void askChatGPT();    /**
+     * Display an error message with API error details
+     *
+     * @param errorResponse The error response from the API
+     */
+    void displayApiError(const std::string &errorResponse);
 }
-
-/**
- * Low-level function to make HTTP requests to the OpenAI API using cURL
- *
- * @param url The full API endpoint URL
- * @param proxy Proxy URL if needed (or "0" for no proxy)
- * @param request The JSON request body as a string
- * @param response Output parameter that will be filled with the API response
- * @return true if request was successful (HTTP 2xx), false otherwise
- */
-bool callOpenAI(const std::string &url, const std::string &proxy, const std::string &request, std::string &response);
 
 /**
  * Callback function used by cURL to receive HTTP response data
@@ -58,12 +51,15 @@ bool callOpenAI(const std::string &url, const std::string &proxy, const std::str
 size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
 /**
- * Replaces the currently selected text in a Scintilla editor instance
+ * Callback function for streaming responses
  *
- * @param curScintilla Handle to the current Scintilla editor
- * @param responseText Text to replace the current selection with
+ * @param contents Pointer to the response data buffer
+ * @param size Always 1
+ * @param nmemb Number of bytes in the data buffer
+ * @param userp User-provided pointer (window handle)
+ * @return Number of bytes processed
  */
-void replaceSelected(HWND curScintilla, const std::string &responseText);
+size_t OpenAIStreamCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
 /**
  * Shows an error message when the instructions file cannot be accessed

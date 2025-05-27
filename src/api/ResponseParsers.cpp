@@ -16,8 +16,8 @@
  */
 
 #include "ResponseParsers.h"
-#include "EncodingUtils.h"    // for multiByteToWideChar
-#include "external_globals.h" // for configAPIValue_showReasoning
+#include "utils/EncodingUtils.h" // for multiByteToWideChar
+#include "external_globals.h"    // for configAPIValue_showReasoning
 #include <string>
 #include <stdexcept>
 

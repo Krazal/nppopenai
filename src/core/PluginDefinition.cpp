@@ -1,30 +1,15 @@
-﻿// This file is part of NppOpenAI, a Notepad++ plugin that integrates OpenAI APIs with Notepad++
-// Copyright (C)2022 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+﻿// PluginDefinition.cpp - Implements plugin menus, command handling, and configuration for the NppOpenAI Notepad++ plugin, enabling OpenAI API integration.
 
 #include "PluginDefinition.h"
-#include "DockingFeature/LoaderDlg.h"
-#include "DockingFeature/ChatSettingsDlg.h"
+#include "ui/dialogs/LoaderDlg.h"
+#include "ui/dialogs/ChatSettingsDlg.h"
 #include "menuCmdID.h"
-#include "ConfigManager.h" // Configuration management functions
-#include "PromptManager.h" // System prompts management
-#include "EncodingUtils.h" // UTF-8 / wide-char conversion utilities
-#include "DebugUtils.h"	   // Debug logging functions
-#include "OpenAIClient.h"  // API client wrapper for OpenAI integration
-#include "UIHelpers.h"	   // UI-related functions for menus and dialogs
+#include "config/ConfigManager.h" // Configuration management functions
+#include "config/PromptManager.h" // System prompts management
+#include "EncodingUtils.h"		  // UTF-8 / wide-char conversion utilities
+#include "DebugUtils.h"			  // Debug logging functions
+#include "OpenAIClient.h"		  // API client wrapper for OpenAI integration
+#include "ui/UIHelpers.h"		  // UI-related functions for menus and dialogs
 
 // Libraries for file operations, cURL, and JSON handling
 #include <string> // For std::wstring
@@ -68,7 +53,7 @@ FuncItem funcItem[nbFunc];
 NppData nppData;
 
 // Debug mode flag for detailed logging
-bool debugMode = false;
+bool debugMode = true; // Temporarily enabled for streaming debug
 
 // Configuration variables for OpenAI API
 std::wstring configAPIValue_secretKey = TEXT("ENTER_YOUR_OPENAI_API_KEY_HERE"); // API key
@@ -83,7 +68,7 @@ std::wstring configAPIValue_maxTokens = TEXT("0");								// 0 = no limit, other
 std::wstring configAPIValue_topP = TEXT("0.8");									// Nucleus sampling parameter
 std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition penalty
 std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
-std::wstring configAPIValue_streaming = TEXT("0");								// Add streaming flag ("1" to enable streaming responses from OpenAI)
+std::wstring configAPIValue_streaming = TEXT("1");								// Add streaming flag ("1" to enable streaming responses from OpenAI)
 std::wstring configAPIValue_showReasoning = TEXT("0");							// Show reasoning sections ("1" to show, "0" to hide)
 bool isKeepQuestion = true;														// Keep original question in response
 std::vector<std::wstring> chatHistory = {};										// Chat history for context

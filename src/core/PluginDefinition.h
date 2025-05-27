@@ -25,8 +25,8 @@
 //
 // All definitions of plugin interface
 //
-#include "PluginInterface.h"
-#include "DockingFeature/LoaderDlg.h"
+#include "../npp/PluginInterface.h"
+#include "../ui/dialogs/LoaderDlg.h"
 #include <string>
 
 // Plugin version info
@@ -59,6 +59,8 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("NppOpenAI");
 const int nbFunc = 10;
 
 // Config vars: API
+#include "config/ConfigManager.h"
+#include "config/PromptManager.h"
 extern std::wstring configAPIValue_secretKey;
 extern std::wstring configAPIValue_baseURL;
 extern std::wstring configAPIValue_proxyURL;
@@ -131,8 +133,6 @@ void updateChatSettings(bool isWriteToFile = false);
 void openAboutDlg();
 
 // Include refactored modules
-#include "ConfigManager.h"
-#include "PromptManager.h"
 #include "EncodingUtils.h"
 #include "DebugUtils.h"
 #include "OpenAIClient.h"

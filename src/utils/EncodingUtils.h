@@ -66,4 +66,4 @@ TCHAR *multiByteToWideChar(const char *utf8);
  * @param utf8 UTF-8 encoded string to convert
  * @return Wide character string
  */
-inline TCHAR *myMultiByteToWideChar(const char *utf8) { return multiByteToWideChar(utf8); }
+inline wchar_t *myMultiByteToWideChar(const char *utf8) { return multiByteToWideChar(utf8); }
