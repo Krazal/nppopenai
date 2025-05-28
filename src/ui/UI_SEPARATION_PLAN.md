@@ -1,5 +1,7 @@
 # UI Separation Plan for NppOpenAI
 
+## 🎯 **Refactor Value**: Clean UI abstraction enables easy framework replacement (Qt/WPF/etc), better testing with mock services, and eliminates tight coupling between UI logic and Win32/Notepad++ globals.
+
 ## 🎉 STATUS: INFRASTRUCTURE COMPLETE ✅ | ACTIVATION PENDING ⚠️
 
 **Result**: UI separation infrastructure is fully implemented and ready. All components are framework-independent and ready for Qt/WPF/other UI frameworks.
