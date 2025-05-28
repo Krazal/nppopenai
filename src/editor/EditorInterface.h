@@ -32,5 +32,5 @@ namespace EditorInterface
     void setCursorAtEnd(HWND editor);
 
     // Prepare editor for streaming response
-    void prepareForStreamingResponse(HWND editor, const std::string &selectedText, bool keepQuestion, const std::wstring &responseType);
+    void prepareForStreamingResponse(HWND editor, const std::string, bool keepQuestion, const std::wstring &responseType); // & selectedText
 }
