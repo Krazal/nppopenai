@@ -1,6 +1,25 @@
 /**
  * LoaderDlg.h - Loading animation dialog
  *
+ * SEPARATION PLAN: Fully Separated Component ✅ COMPLETED
+ * This dialog has been successfully refactored with interface abstraction:
+ * - Implements ILoadingDialog interface for framework independence
+ * - Uses dependency injection for model name (no direct global access)
+ * - Self-contained state management with timer and animation logic
+ * - Clean separation suitable for replacement with Qt/WPF/etc.
+ *
+ * REFACTORING COMPLETED:
+ * ✅ Interface abstraction (ILoadingDialog)
+ * ✅ Dependency injection (setModelName)
+ * ✅ Removed global variable coupling
+ * ✅ Framework-independent design
+ *
+ * FRAMEWORK REPLACEMENT: This dialog demonstrates the target architecture
+ * for UI separation. It can be easily replaced with different UI frameworks
+ * by implementing ILoadingDialog with framework-specific components.
+ *
+ * Part of the UI Separation Plan - see UI_SEPARATION_PLAN.md for details.
+ *
  * This file defines the dialog that displays a loading animation while
  * waiting for a response from the OpenAI API. It provides visual feedback
  * to the user that a request is in progress.
@@ -13,29 +32,65 @@
 
 #include "DockingDlgInterface.h"
 #include "loaderResource.h"
+#include "../interfaces/ILoadingDialog.h"
 #include <commctrl.h>
-
-// Add extern declaration for configAPIValue_model
-extern std::wstring configAPIValue_model;
 
 /**
  * Dialog for displaying a loading animation
  *
  * This dialog shows a marquee progress bar to indicate that a request
- * to the OpenAI API is in progress. It provides visual feedback to the user
+ * to the AI API is in progress. It provides visual feedback to the user
  * during potentially lengthy API calls.
  */
-class LoaderDlg : public StaticDialog
+class LoaderDlg : public StaticDialog, public ILoadingDialog
 {
 public:
 	LoaderDlg() : _startTime(0), _elapsedSeconds(0) {}
+
+	/**
+	 * Sets the model name to display in the dialog
+	 * @param modelName The AI model name to show
+	 */
+	void setModelName(const std::wstring &modelName) override
+	{
+		_modelName = modelName;
+		if (isCreated() && ::IsWindowVisible(_hSelf))
+		{
+			updateModelText();
+		}
+	}
+
+	/**
+	 * Shows the loading dialog
+	 * @param isRTL Whether to use right-to-left text layout
+	 */
+	void show(bool isRTL = false) override
+	{
+		doDialog(isRTL);
+	}
+
+	/**
+	 * Hides the loading dialog
+	 */
+	void hide() override
+	{
+		display(false);
+	}
+	/**
+	 * Checks if the dialog is currently visible
+	 * @return true if visible, false otherwise
+	 */
+	bool isVisible() const override
+	{
+		return isCreated() && ::IsWindowVisible(_hSelf);
+	}
 
 	/**
 	 * Resets the timer to zero and restarts counting
 	 *
 	 * Call this whenever a new operation starts, even if the dialog is already visible
 	 */
-	void resetTimer()
+	void resetTimer() override
 	{
 		_startTime = ::GetTickCount64();
 		_elapsedSeconds = 0;
@@ -84,10 +139,8 @@ public:
 				::SendMessage(progressBar, PBM_SETMARQUEE, TRUE, 20);
 		}
 
-		// Update model name text to show current model from config
-		TCHAR modelText[128];
-		swprintf(modelText, 128, TEXT("«%s» AI model will respond"), configAPIValue_model.c_str());
-		::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
+		// Update model name text (only if model name was set)
+		updateModelText();
 
 		// Show and update window
 		display();
@@ -148,6 +201,20 @@ protected:
 private:
 	ULONGLONG _startTime;	   // Timestamp when dialog is first shown
 	ULONGLONG _elapsedSeconds; // Elapsed time in seconds for display
+	std::wstring _modelName;   // AI model name to display
+
+	/**
+	 * Updates the model name text in the dialog
+	 */
+	void updateModelText()
+	{
+		if (isCreated() && !_modelName.empty())
+		{
+			TCHAR modelText[128];
+			swprintf(modelText, 128, TEXT("%s AI model will respond"), _modelName.c_str());
+			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_STATIC, modelText);
+		}
+	}
 };
 
 #endif // PLUGINNPPOPENAI_LOADER_DLG_H

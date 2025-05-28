@@ -18,6 +18,18 @@
 /**
  * ChatSettingsDlg.h - Chat settings dialog class
  *
+ * SEPARATION PLAN: Well-Separated Component ✅
+ * This dialog is already well-separated with minimal coupling:
+ * - Only accesses nppData for dialog parent window (necessary for modal dialogs)
+ * - Self-contained state management with internal variables
+ * - No direct access to configuration globals
+ * - Clean dialog interface suitable for different UI frameworks
+ *
+ * FRAMEWORK REPLACEMENT: This dialog can be easily replaced with Qt/WPF equivalents
+ * by implementing the same interface pattern with framework-specific modal dialogs.
+ *
+ * Part of the UI Separation Plan - see UI_SEPARATION_PLAN.md for details.
+ *
  * This file defines the dialog for configuring chat functionality in the NppOpenAI plugin.
  * It allows users to enable/disable chat mode and set the message history limit.
  *

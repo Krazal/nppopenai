@@ -31,11 +31,11 @@ namespace OpenAIClientImpl
      * 5. Processes the response
      * 6. Updates the editor with the generated text
      */
-    void askChatGPT();    /**
-     * Display an error message with API error details
-     *
-     * @param errorResponse The error response from the API
-     */
+    void askChatGPT(); /**
+                        * Display an error message with API error details
+                        *
+                        * @param errorResponse The error response from the API
+                        */
     void displayApiError(const std::string &errorResponse);
 }
 

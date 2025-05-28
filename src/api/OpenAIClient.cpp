@@ -237,6 +237,7 @@ namespace OpenAIClientImpl
         }
 
         // NOW show the loader dialog after prompt selection is complete
+        _loaderDlg.setModelName(configAPIValue_model);
         _loaderDlg.doDialog();
         _loaderDlg.resetTimer();
         ::UpdateWindow(_loaderDlg.getHSelf());
@@ -289,7 +290,8 @@ namespace OpenAIClientImpl
             s_streamTargetScintilla = curScintilla; // Perform streaming request with the correct message type
             ok = HTTPClient::performStreamingRequest(url, request, apiType, secretKey,
                                                      nppData._nppHandle, // Use nppData._nppHandle as target for messages
-                                                     WM_OPENAI_STREAM_CHUNK, proxy);        }
+                                                     WM_OPENAI_STREAM_CHUNK, proxy);
+        }
         else
         {
             // For non-streaming mode, perform regular request
@@ -323,7 +325,8 @@ namespace OpenAIClientImpl
             }
 
             instructionsFileError(errorMsg.c_str(), L"NppOpenAI Error");
-            return;        } // Handle non-streaming response
+            return;
+        } // Handle non-streaming response
         if (!streaming)
         {
             // Parse response and extract content using the correct parser
@@ -338,7 +341,7 @@ namespace OpenAIClientImpl
                     // Move cursor to end of selection (after the question)
                     Sci_Position selEnd = ::SendMessage(curScintilla, SCI_GETSELECTIONEND, 0, 0);
                     ::SendMessage(curScintilla, SCI_SETSEL, selEnd, selEnd);
-                    
+
                     // Add appropriate spacing and the response after the question
                     std::string responseText;
                     if (configAPIValue_responseType == L"ollama")
@@ -349,10 +352,10 @@ namespace OpenAIClientImpl
                     {
                         responseText = "\n\n" + extractedContent;
                     }
-                    
+
                     // Insert the response after the question
                     EditorInterface::insertTextAtCursor(curScintilla, responseText);
-                    
+
                     // Debug output to verify behavior
                     if (debugMode)
                     {

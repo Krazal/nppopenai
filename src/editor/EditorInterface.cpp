@@ -104,9 +104,12 @@ void EditorInterface::setCursorAtEnd(HWND editor)
  * @param keepQuestion Whether to keep the user's question in the response
  * @param responseType The type of response (openai, claude, ollama, etc.)
  */
-void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string, // &selectedText
+void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string &selectedText,
                                                   bool keepQuestion, const std::wstring &responseType)
 {
+    // Mark unused parameter to suppress compiler warning
+    (void)selectedText;
+
     // Get selection range
     Sci_Position selStart = ::SendMessage(editor, SCI_GETSELECTIONSTART, 0, 0);
     Sci_Position selEnd = ::SendMessage(editor, SCI_GETSELECTIONEND, 0, 0);
@@ -116,7 +119,7 @@ void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string
         // Keep the question and position cursor after it
         // Move cursor to the end of selection (after the question)
         ::SendMessage(editor, SCI_SETSEL, selEnd, selEnd);
-        
+
         // Add appropriate spacing after the question
         std::string spacing = (responseType == L"ollama") ? "\n" : "\n\n";
         ::SendMessage(editor, SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(spacing.c_str()));
@@ -127,7 +130,7 @@ void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string
         ::SendMessage(editor, SCI_SETTARGETSTART, selStart, 0);
         ::SendMessage(editor, SCI_SETTARGETEND, selEnd, 0);
         ::SendMessage(editor, SCI_REPLACETARGET, 0, reinterpret_cast<LPARAM>(""));
-        
+
         // Position cursor at the start of where the selection was
         ::SendMessage(editor, SCI_SETSEL, selStart, selStart);
     }

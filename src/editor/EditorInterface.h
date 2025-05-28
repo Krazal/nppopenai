@@ -29,8 +29,6 @@ namespace EditorInterface
     void moveCursorTo(HWND editor, Sci_Position position);
 
     // Set cursor at the end of the document
-    void setCursorAtEnd(HWND editor);
-
-    // Prepare editor for streaming response
-    void prepareForStreamingResponse(HWND editor, const std::string, bool keepQuestion, const std::wstring &responseType); // & selectedText
+    void setCursorAtEnd(HWND editor); // Prepare editor for streaming response
+    void prepareForStreamingResponse(HWND editor, const std::string &selectedText, bool keepQuestion, const std::wstring &responseType);
 }
