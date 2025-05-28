@@ -104,7 +104,7 @@ void EditorInterface::setCursorAtEnd(HWND editor)
  * @param keepQuestion Whether to keep the user's question in the response
  * @param responseType The type of response (openai, claude, ollama, etc.)
  */
-void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string, // &selectedText
+void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string &selectedText,
                                                   bool keepQuestion, const std::wstring &responseType)
 {
     // Mark unused parameter to suppress compiler warning
