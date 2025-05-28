@@ -107,6 +107,9 @@ void EditorInterface::setCursorAtEnd(HWND editor)
 void EditorInterface::prepareForStreamingResponse(HWND editor, const std::string &selectedText,
                                                   bool keepQuestion, const std::wstring &responseType)
 {
+    // Mark unused parameter to suppress compiler warning
+    (void)selectedText;
+
     // Get selection range
     Sci_Position selStart = ::SendMessage(editor, SCI_GETSELECTIONSTART, 0, 0);
     Sci_Position selEnd = ::SendMessage(editor, SCI_GETSELECTIONEND, 0, 0);

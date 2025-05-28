@@ -237,6 +237,7 @@ namespace OpenAIClientImpl
         }
 
         // NOW show the loader dialog after prompt selection is complete
+        _loaderDlg.setModelName(configAPIValue_model);
         _loaderDlg.doDialog();
         _loaderDlg.resetTimer();
         ::UpdateWindow(_loaderDlg.getHSelf());

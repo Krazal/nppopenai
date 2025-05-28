@@ -1,9 +1,17 @@
 /**
  * external_globals.h - Global variables and function declarations
  *
+ * SEPARATION PLAN: Phase 4 - Future Service Declaration
  * This file defines global variables and functions that need to be accessible
  * across multiple source files. It provides forward declarations to avoid
  * circular dependencies and ensures consistent access to shared resources.
+ *
+ * REFACTORING STATUS: Being prepared for service-based architecture
+ * - Service interfaces will be added for dependency injection
+ * - Current global variables maintained for backward compatibility
+ * - Future framework replacement will use service instances
+ *
+ * Part of the UI Separation Plan - see UI_SEPARATION_PLAN.md for details.
  */
 
 #ifndef EXTERNAL_GLOBALS_H
@@ -13,7 +21,17 @@
 #include "ui/dialogs/LoaderDlg.h"
 #include "ui/dialogs/ChatSettingsDlg.h"
 #include <string>
+#include <memory>
 #include "PluginInterface.h"
+
+// SEPARATION PLAN: Forward declarations for service interfaces
+namespace UIServices
+{
+    class IUIService;
+    class IConfigurationService;
+    class IMenuService;
+    class INotepadService;
+}
 
 /**
  * Forward declarations for global functions
@@ -63,5 +81,15 @@ extern std::wstring configAPIValue_presencePenalty;  // Presence penalty for API
 extern std::wstring configAPIValue_streaming;        // Add streaming flag ("1" for enabled, "0" for disabled)
 extern std::wstring configAPIValue_showReasoning;    // Show reasoning sections ("1" to show <think></think> sections, "0" to remove them)
 extern HWND s_streamTargetScintilla;                 // Global handle to the Scintilla editor used for streaming responses
+
+/**
+ * SEPARATION PLAN: Service instances for dependency injection
+ * These will be used to initialize UIHelpers with service-based operation
+ * instead of direct global variable access
+ */
+extern std::shared_ptr<UIServices::IUIService> g_globalUIService;
+extern std::shared_ptr<UIServices::IConfigurationService> g_globalConfigService;
+extern std::shared_ptr<UIServices::IMenuService> g_globalMenuService;
+extern std::shared_ptr<UIServices::INotepadService> g_globalNotepadService;
 
 #endif // EXTERNAL_GLOBALS_H
