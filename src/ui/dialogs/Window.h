@@ -1,19 +1,6 @@
-// This file is part of Notepad++ project
-// Copyright (C)2022 Don HO <don.h@free.fr>
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// at your option any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+// Base window class for UI components
+// Provides fundamental window management functionality for plugin dialogs
+// and UI elements within the Notepad++ environment
 
 #pragma once
 #include <windows.h>
@@ -24,10 +11,9 @@ public:
 	//! \name Constructors & Destructor
 	//@{
 	Window() = default;
-	Window(const Window&) = delete;
+	Window(const Window &) = delete;
 	virtual ~Window() = default;
 	//@}
-
 
 	virtual void init(HINSTANCE hInst, HWND parent)
 	{
@@ -42,20 +28,17 @@ public:
 		::ShowWindow(_hSelf, toShow ? SW_SHOW : SW_HIDE);
 	}
 
-
-	virtual void reSizeTo(RECT & rc) // should NEVER be const !!!
+	virtual void reSizeTo(RECT &rc) // should NEVER be const !!!
 	{
 		::MoveWindow(_hSelf, rc.left, rc.top, rc.right, rc.bottom, TRUE);
 		redraw();
 	}
 
-
-	virtual void reSizeToWH(RECT& rc) // should NEVER be const !!!
+	virtual void reSizeToWH(RECT &rc) // should NEVER be const !!!
 	{
 		::MoveWindow(_hSelf, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
 		redraw();
 	}
-
 
 	virtual void redraw(bool forceUpdate = false) const
 	{
@@ -64,13 +47,12 @@ public:
 			::UpdateWindow(_hSelf);
 	}
 
-
-    virtual void getClientRect(RECT & rc) const
+	virtual void getClientRect(RECT &rc) const
 	{
 		::GetClientRect(_hSelf, &rc);
 	}
 
-	virtual void getWindowRect(RECT & rc) const
+	virtual void getWindowRect(RECT &rc) const
 	{
 		::GetWindowRect(_hSelf, &rc);
 	}
@@ -93,7 +75,7 @@ public:
 
 	virtual bool isVisible() const
 	{
-    	return (::IsWindowVisible(_hSelf)?true:false);
+		return (::IsWindowVisible(_hSelf) ? true : false);
 	}
 
 	HWND getHSelf() const
@@ -101,23 +83,23 @@ public:
 		return _hSelf;
 	}
 
-	HWND getHParent() const {
+	HWND getHParent() const
+	{
 		return _hParent;
 	}
 
-	void getFocus() const {
+	void getFocus() const
+	{
 		::SetFocus(_hSelf);
 	}
 
-    HINSTANCE getHinst() const
+	HINSTANCE getHinst() const
 	{
-		//assert(_hInst != 0);
+		// assert(_hInst != 0);
 		return _hInst;
 	}
 
-
-	Window& operator = (const Window&) = delete;
-
+	Window &operator=(const Window &) = delete;
 
 protected:
 	HINSTANCE _hInst = NULL;
