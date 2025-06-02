@@ -42,15 +42,21 @@ public:
     virtual void hide() = 0;
 
     /**
-     * Resets the timer to zero and restarts counting
-     */
-    virtual void resetTimer() = 0;
-
-    /**
      * Checks if the dialog is currently visible
      * @return true if visible, false otherwise
      */
     virtual bool isVisible() const = 0;
+
+    /**
+     * Resets the timer to zero and restarts counting
+     */
+    virtual void resetDialog() = 0;
+
+    /**
+	 * Get the isCancelled state of the dialog
+     * @return true if the dialog is cancelled, false otherwise
+     */
+    virtual bool isCancelled() const = 0;
 };
 
 #endif // ILOADING_DIALOG_H

@@ -26,7 +26,16 @@ std::string APIUtils::buildApiUrl(const std::string &baseUrl, const std::string 
 
     if (!hasCompletionsEndpoint && !chatRoute.empty())
     {
-        url += chatRoute;
+		// If the chatRoute begins with a slash, remove it to avoid double slashes
+        if (chatRoute.front() == '/')
+        {
+            std::string modifiedChatRoute = chatRoute.substr(1);
+            url += modifiedChatRoute;
+        }
+        else
+        {
+            url += chatRoute;
+        }
     }
     else if (hasCompletionsEndpoint)
     {

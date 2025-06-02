@@ -86,14 +86,15 @@ public:
 	}
 
 	/**
-	 * Resets the timer to zero and restarts counting
+	 * Resets the dialog state (timer, elapsed time, cancellation flag)
 	 *
 	 * Call this whenever a new operation starts, even if the dialog is already visible
 	 */
-	void resetTimer() override
+	void resetDialog() override
 	{
 		_startTime = ::GetTickCount64();
 		_elapsedSeconds = 0;
+		_isCancelled = false;
 
 		// Update the elapsed time text immediately
 		if (isCreated() && ::IsWindowVisible(_hSelf))
@@ -102,6 +103,14 @@ public:
 			swprintf(timeText, 128, TEXT("Waiting for %llu seconds..."), static_cast<unsigned long long>(0));
 			::SetDlgItemText(_hSelf, ID_PLUGINNPPOPENAI_LOADING_ESTIMATE, timeText);
 		}
+	}
+
+	/**
+	 * Gets the isCancelled state
+	 */
+	bool isCancelled() const
+	{
+		return _isCancelled;
 	}
 
 	/**
@@ -202,6 +211,7 @@ private:
 	ULONGLONG _startTime;	   // Timestamp when dialog is first shown
 	ULONGLONG _elapsedSeconds; // Elapsed time in seconds for display
 	std::wstring _modelName;   // AI model name to display
+	bool _isCancelled;         // Flag to indicate if the operation was cancelled (true if user clicked Cancel button)
 
 	/**
 	 * Updates the model name text in the dialog

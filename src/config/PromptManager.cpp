@@ -104,7 +104,7 @@ void parseInstructionsFile(const WCHAR *filePath, std::vector<Prompt> &prompts)
  * @param owner Handle to the parent window
  * @param prompts Vector of available prompts
  * @param lastUsedIndex Index of the last used prompt, used to preselect a default
- * @return Index of the selected prompt, or -1 if the dialog was canceled
+ * @return Index of the selected prompt, or -1 if the dialog was cancelled
  */
 int choosePrompt(HWND owner, const std::vector<Prompt> &prompts, int lastUsedIndex)
 {

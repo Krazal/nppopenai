@@ -2,6 +2,7 @@
 #include <curl/curl.h>
 #include "OpenAIClient.h"  // For callback functions
 #include "EncodingUtils.h" // for toUTF8
+#include "editor/EditorInterface.h" // For getCurrentScintilla
 #include "core/external_globals.h"
 #include "npp/Notepad_plus_msgs.h"
 #include <future>
@@ -165,6 +166,10 @@ bool HTTPClient::performStreamingRequest(
         ::SendMessage(nppData._nppHandle, NPPM_SETSTATUSBAR, STATUSBAR_DOC_TYPE, (LPARAM)L"Starting streaming request...");
     }
 
+	// Begin undo action in Scintilla editor to allow for proper undo/redo behavior
+    HWND curScintilla = EditorInterface::getCurrentScintilla();
+    ::SendMessage(curScintilla, SCI_BEGINUNDOACTION, 0, 0);
+
     // Perform the request asynchronously
     auto futureRes = std::async(std::launch::async, [curl]()
                                 {
@@ -186,6 +191,9 @@ bool HTTPClient::performStreamingRequest(
     res = futureRes.get(); // Get HTTP status code
     long http_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+	// End undo action in Scintilla editor
+    ::SendMessage(curScintilla, SCI_ENDUNDOACTION, 0, 0);
 
     // Add debugging for the HTTP response
     if (debugMode)

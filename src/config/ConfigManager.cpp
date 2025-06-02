@@ -117,29 +117,44 @@ namespace ConfigManagerImpl
         std::transform(baseUrlLower.begin(), baseUrlLower.end(), baseUrlLower.begin(),
                        [](wchar_t c)
                        { return static_cast<wchar_t>(::towlower(c)); });
-        // Check for common patterns that should include /v1 for OpenAI-compatible servers
-        bool needsV1 = false;
-        if ((baseUrlLower.find(L"localhost:1234") != std::wstring::npos || // LM Studio
-             baseUrlLower.find(L"localhost:8000") != std::wstring::npos || // vLLM
-             baseUrlLower.find(L"localhost:8080") != std::wstring::npos || // LocalAI
-             baseUrlLower.find(L"litellm") != std::wstring::npos ||        // LiteLLM
-             baseUrlLower.find(L"fastchat") != std::wstring::npos ||       // FastChat
-             baseUrlLower.find(L"localai") != std::wstring::npos) &&       // LocalAI (additional pattern)
-            baseUrlLower.find(L"/v1") == std::wstring::npos &&
-            baseUrlLower.find(L"11434") == std::wstring::npos)
-        { // Exclude Ollama default port
-            needsV1 = true;
-        }
 
+        // Check for common patterns that should include /v1/ for OpenAI-compatible servers
+        /*
+        bool needsV1 = ((baseUrlLower.find(L"localhost:1234") != std::wstring::npos || // LM Studio
+            baseUrlLower.find(L"localhost:8000") != std::wstring::npos || // vLLM
+            baseUrlLower.find(L"localhost:8080") != std::wstring::npos || // LocalAI
+            baseUrlLower.find(L"litellm") != std::wstring::npos ||        // LiteLLM
+            baseUrlLower.find(L"fastchat") != std::wstring::npos ||       // FastChat
+            baseUrlLower.find(L"localai") != std::wstring::npos) &&       // LocalAI (additional pattern)
+            baseUrlLower.find(L"/v1") == std::wstring::npos &&
+            baseUrlLower.find(L"11434") == std::wstring::npos); // Exclude Ollama default port
+        */
+		bool needsV1 = (baseUrlLower.find(L"/v1") == std::wstring::npos); // We only examine the '/v1' ending, as unexpected cases may occur (e.g. remote Ollama, using 127.0.0.1 instead of localhost, etc. etc.)
         if (needsV1)
         {
-            // Remove trailing slash if present
-            if (!configAPIValue_baseURL.empty() && configAPIValue_baseURL.back() == L'/')
+            TCHAR getConfirmedTrailingV1[2];
+            ::GetPrivateProfileString(TEXT("PLUGIN"), TEXT("is_confirmed_trailing_v1"), TEXT("0"), getConfirmedTrailingV1, 2, iniFilePath);
+            if (getConfirmedTrailingV1[0] != '1')
             {
-                configAPIValue_baseURL.pop_back();
-            }
-            configAPIValue_baseURL += L"/v1/";
+				// Show confirmation dialog to user to update API URL
+                int result = ::MessageBox(nppData._nppHandle, (L"The “" + configAPIValue_baseURL + L"” API URL does not end with “/v1/”.\n\nDo you want to append it?\n(Recommended for remote access)").c_str(), L"NppOpenAI: Confirm", MB_YESNO | MB_ICONQUESTION);
+                if (result == IDYES)
+                {
+                    // Remove trailing slash if present
+                    if (!configAPIValue_baseURL.empty() && configAPIValue_baseURL.back() == L'/')
+                    {
+                        configAPIValue_baseURL.pop_back();
+                    }
+                    configAPIValue_baseURL += L"/v1/";
 
+                    // Save confirmation and updated URL to INI file
+                    ::WritePrivateProfileString(TEXT("API"), TEXT("api_url"), configAPIValue_baseURL.c_str(), iniFilePath);
+
+                }
+                ::WritePrivateProfileString(TEXT("PLUGIN"), TEXT("is_confirmed_trailing_v1"), TEXT("1"), iniFilePath); // Don't bother user again
+            }
+
+			/* Not necessary if we request confirmation from user
             // Optionally notify user about the auto-correction
             if (debugMode)
             {
@@ -148,6 +163,7 @@ namespace ConfigManagerImpl
                              L"NppOpenAI Auto-Correction",
                              MB_ICONINFORMATION);
             }
+            */
         }
         else
         {
@@ -157,6 +173,7 @@ namespace ConfigManagerImpl
                 configAPIValue_baseURL.push_back(L'/');
             }
         } // Try new route naming convention first, then fall back to legacy
+
         ::GetPrivateProfileString(TEXT("API"), TEXT("route_chat_completions"), L"", buffer, 1024, iniFilePath);
         if (wcslen(buffer) > 0)
         {

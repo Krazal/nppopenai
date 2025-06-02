@@ -113,6 +113,22 @@ INT_PTR CALLBACK LoaderDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM /*lP
 		}
 		return TRUE;
 	}
+	case WM_COMMAND:
+	{
+		switch (LOWORD(wParam))
+		{
+
+		// Stop loading/streaming AI answer and close the dialog
+		case IDCANCEL:
+		case ID_PLUGINNPPOPENAI_LOADING_CANCEL:
+			_isCancelled = true; // We indicate that the user has cancelled the operation
+			::KillTimer(_hSelf, 1);
+			::KillTimer(_hSelf, 2);
+			::EndDialog(_hSelf, LOWORD(wParam));
+			return TRUE;
+		}
+		return TRUE;
+	}
 	case WM_DESTROY:
 	{
 		// Make sure we kill all timers when the dialog is destroyed

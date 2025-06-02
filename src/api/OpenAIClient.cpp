@@ -63,7 +63,7 @@ size_t OpenAIcURLCallback(void *contents, size_t size, size_t nmemb, void *userp
     size_t totalSize = size * nmemb;
     std::string *pResponse = static_cast<std::string *>(userp);
     pResponse->append(static_cast<char *>(contents), totalSize);
-    return totalSize;
+    return _loaderDlg.isCancelled() ? CURL_READFUNC_ABORT : totalSize;
 }
 
 /**
@@ -135,7 +135,7 @@ size_t OpenAIStreamCallback(void *contents, size_t size, size_t nmemb, void *use
         }
     }
 
-    return totalSize;
+    return _loaderDlg.isCancelled() ? CURL_READFUNC_ABORT : totalSize;
 }
 
 /**
@@ -221,7 +221,7 @@ namespace OpenAIClientImpl
 
                 if (selectedPromptIndex == -1)
                 {
-                    // User canceled the dialog
+                    // User cancelled the dialog
                     return;
                 }
 
@@ -239,7 +239,7 @@ namespace OpenAIClientImpl
         // NOW show the loader dialog after prompt selection is complete
         _loaderDlg.setModelName(configAPIValue_model);
         _loaderDlg.doDialog();
-        _loaderDlg.resetTimer();
+        _loaderDlg.resetDialog();
         ::UpdateWindow(_loaderDlg.getHSelf());
 
         // Process pending messages to make dialog visible
@@ -302,7 +302,8 @@ namespace OpenAIClientImpl
             _loaderDlg.display(false);
 
             // Parse and display API error
-            std::wstring errorMsg = L"Request failed";
+            std::wstring errorMsg = multiByteToWideChar(url.c_str());
+            errorMsg += L": Request failed";
             try
             {
                 if (!response.empty())
@@ -324,7 +325,11 @@ namespace OpenAIClientImpl
                 // Error parsing response - use default error message
             }
 
-            instructionsFileError(errorMsg.c_str(), L"NppOpenAI Error");
+			// Display error message if a non-user cancellation occurred
+            if (!_loaderDlg.isCancelled())
+            {
+                instructionsFileError(errorMsg.c_str(), L"NppOpenAI Error");
+            }
             return;
         } // Handle non-streaming response
         if (!streaming)
