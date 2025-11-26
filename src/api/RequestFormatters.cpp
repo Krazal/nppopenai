@@ -66,7 +66,8 @@ namespace RequestFormatters
 
         if (maxTokens > 0)
         {
-            requestJson["max_tokens"] = maxTokens;
+			std::string maxTokensKey = toUTF8(model).substr(0, 6) == "gpt-5" ? "max_completion_tokens" : "max_tokens";
+            requestJson[maxTokensKey] = maxTokens;
         }
 
         if (topP != 1.0f)
