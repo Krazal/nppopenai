@@ -80,6 +80,7 @@ extern std::wstring configAPIValue_frequencyPenalty; // Frequency penalty for AP
 extern std::wstring configAPIValue_presencePenalty;  // Presence penalty for API requests
 extern std::wstring configAPIValue_streaming;        // Add streaming flag ("1" for enabled, "0" for disabled)
 extern std::wstring configAPIValue_showReasoning;    // Show reasoning sections ("1" to show <think></think> sections, "0" to remove them)
+extern std::wstring configAPIValue_keepAlive;        // Keep model loaded in memory (Ollama): e.g. "-1" (keep indefinitely), "0" (unload immediately), "10m" (keep for 10 minutes), "24h" (keep for 24 hours))
 extern HWND s_streamTargetScintilla;                 // Global handle to the Scintilla editor used for streaming responses
 
 /**

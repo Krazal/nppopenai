@@ -254,15 +254,15 @@ namespace OpenAIClientImpl
         // Check if streaming is enabled
         bool streaming = (configAPIValue_streaming == L"1"); // Prepare API request with all necessary parameters
         std::string request = APIUtils::prepareApiRequest(
-            selectedText,
-            systemPrompt,
-            configAPIValue_model,
-            configAPIValue_responseType,
-            std::stof(toUTF8(configAPIValue_temperature)),
-            std::stoi(toUTF8(configAPIValue_maxTokens)),
-            std::stof(toUTF8(configAPIValue_topP)),
-            std::stof(toUTF8(configAPIValue_frequencyPenalty)),
-            std::stof(toUTF8(configAPIValue_presencePenalty)), streaming);
+             selectedText,
+             systemPrompt,
+             configAPIValue_model,
+             configAPIValue_responseType,
+             std::stof(toUTF8(configAPIValue_temperature)),
+             std::stoi(toUTF8(configAPIValue_maxTokens)),
+             std::stof(toUTF8(configAPIValue_topP)),
+             std::stof(toUTF8(configAPIValue_frequencyPenalty)),
+             std::stof(toUTF8(configAPIValue_presencePenalty)), configAPIValue_keepAlive, streaming);
 
         // Build API URL with base URL and chat route
         std::string baseUrl = toUTF8(configAPIValue_baseURL);

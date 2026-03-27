@@ -23,15 +23,18 @@
 namespace RequestFormatters
 {
     std::string formatOpenAIRequest(
-        const std::wstring &model,
-        const std::wstring &prompt,
-        const std::wstring &systemPrompt,
+        const std::wstring& model,
+        const std::wstring& prompt,
+        const std::wstring& systemPrompt,
         float temperature,
         int maxTokens,
         float topP,
         float frequencyPenalty,
-        float presencePenalty)
+        float presencePenalty,
+        const std::wstring& keepAlive)
     {
+        (void)keepAlive; // Not used for OpenAI-compatible requests
+
         json requestJson;
 
         // Convert wstring to UTF-8 string
@@ -48,13 +51,13 @@ namespace RequestFormatters
         // Add system message if not empty
         if (!systemPromptStr.empty())
         {
-            messagesArray.push_back({{"role", "system"},
-                                     {"content", systemPromptStr}});
+            messagesArray.push_back({ {"role", "system"},
+                                     {"content", systemPromptStr} });
         }
 
         // Add user message
-        messagesArray.push_back({{"role", "user"},
-                                 {"content", promptStr}});
+        messagesArray.push_back({ {"role", "user"},
+                                 {"content", promptStr} });
 
         requestJson["messages"] = messagesArray;
 
@@ -66,7 +69,7 @@ namespace RequestFormatters
 
         if (maxTokens > 0)
         {
-			std::string maxTokensKey = toUTF8(model).substr(0, 6) == "gpt-5" ? "max_completion_tokens" : "max_tokens";
+            std::string maxTokensKey = toUTF8(model).substr(0, 6) == "gpt-5" ? "max_completion_tokens" : "max_tokens";
             requestJson[maxTokensKey] = maxTokens;
         }
 
@@ -87,15 +90,17 @@ namespace RequestFormatters
 
         return requestJson.dump();
     }
+
     std::string formatOllamaRequest(
-        const std::wstring &model,
-        const std::wstring &prompt,
-        const std::wstring &systemPrompt,
+        const std::wstring& model,
+        const std::wstring& prompt,
+        const std::wstring& systemPrompt,
         float temperature,
         int maxTokens,
         float topP,
         float frequencyPenalty,
-        float presencePenalty)
+        float presencePenalty,
+        const std::wstring& keepAlive)
     {
         // Mark unused parameters to avoid compiler warnings
         (void)presencePenalty; // Ollama doesn't use presence_penalty
@@ -135,6 +140,12 @@ namespace RequestFormatters
             requestJson["top_p"] = topP;
         }
 
+        // Ollama: optional keep_alive parameter (accepts seconds or suffixed strings like "10m", "24h")
+        if (!keepAlive.empty()) // NOK: && keepAlive != L"0" (Allow "0" to be passed to unload immediately)
+        {
+            requestJson["keep_alive"] = toUTF8(keepAlive);
+        }
+
         // Ollama doesn't support frequency_penalty and presence_penalty
         // but has optional frequency_penalty called repeat_penalty
         if (frequencyPenalty != 0.0f)
@@ -144,16 +155,20 @@ namespace RequestFormatters
 
         return requestJson.dump();
     }
+
     std::string formatClaudeRequest(
-        const std::wstring &model,
-        const std::wstring &prompt,
-        const std::wstring &systemPrompt,
+        const std::wstring& model,
+        const std::wstring& prompt,
+        const std::wstring& systemPrompt,
         float temperature,
         int maxTokens,
         float topP,
         float frequencyPenalty,
-        float presencePenalty)
+        float presencePenalty,
+        const std::wstring& keepAlive)
     {
+        (void)keepAlive; // Not used for Claude request format
+
         // Mark unused parameters to avoid compiler warnings
         (void)frequencyPenalty; // Claude doesn't use frequency_penalty
         (void)presencePenalty;  // Claude doesn't use presence_penalty
@@ -172,8 +187,8 @@ namespace RequestFormatters
         json messagesArray = json::array();
 
         // Add user message
-        messagesArray.push_back({{"role", "user"},
-                                 {"content", promptStr}});
+        messagesArray.push_back({ {"role", "user"},
+                                 {"content", promptStr} });
 
         requestJson["messages"] = messagesArray;
 
@@ -205,16 +220,18 @@ namespace RequestFormatters
     }
 
     std::string formatSimpleRequest(
-        const std::wstring &model,
-        const std::wstring &prompt,
-        const std::wstring &systemPrompt,
+        const std::wstring& model,
+        const std::wstring& prompt,
+        const std::wstring& systemPrompt,
         float temperature,
         int maxTokens,
         float topP,
         float frequencyPenalty,
-        float presencePenalty)
+        float presencePenalty,
+        const std::wstring& keepAlive)
     {
         // Mark unused parameters to avoid compiler warnings
+        (void)keepAlive;        // Not used for simple format
         (void)topP;             // Simple APIs typically don't use top_p
         (void)frequencyPenalty; // Simple APIs typically don't use frequency_penalty
         (void)presencePenalty;  // Simple APIs typically don't use presence_penalty
@@ -249,7 +266,8 @@ namespace RequestFormatters
 
         return requestJson.dump();
     }
-    FormatterFunction getFormatterForEndpoint(const std::wstring &endpointType)
+
+    FormatterFunction getFormatterForEndpoint(const std::wstring& endpointType)
     {
         // Convert wstring to string for comparison
         std::string type = toUTF8(endpointType);

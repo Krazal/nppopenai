@@ -26,5 +26,6 @@ namespace APIUtils
         float topP,
         float frequencyPenalty,
         float presencePenalty,
+        const std::wstring &keepAlive,
         bool streaming);
 }

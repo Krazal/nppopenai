@@ -56,7 +56,7 @@ void writeDefaultConfig()
     ::WritePrivateProfileString(TEXT("INFO"), TEXT("; route_chat_completions = api/generate  # New naming convention"), TEXT(""), iniFilePath);
     ::WritePrivateProfileString(TEXT("INFO"), TEXT("; model = qwen3:1.7b"), TEXT(""), iniFilePath);
     ::WritePrivateProfileString(TEXT("INFO"), TEXT("; streaming = 1 (enabled) or 0 (disabled)"), TEXT(""), iniFilePath);
-    ::WritePrivateProfileString(TEXT("INFO"), TEXT("; show_reasoning = 1 (show AI reasoning sections) or 0 (hide reasoning)"), TEXT(""), iniFilePath); // Set the default OpenAI API values with new route naming convention
+    ::WritePrivateProfileString(TEXT("INFO"), TEXT("; keep_alive = 5m (keep model in memory for 5 minutes after each request; set to -1 to keep indefinitely, 0 to unload immediately, or use suffixes like 10m for 10 minutes, 24h for 24 hours)"), TEXT(""), iniFilePath);
     ::WritePrivateProfileString(TEXT("API"), TEXT("secret_key"), TEXT("ENTER_YOUR_API_KEY_HERE"), iniFilePath);
     ::WritePrivateProfileString(TEXT("API"), TEXT("api_url"), TEXT("https://api.openai.com/v1/"), iniFilePath); // New route naming convention (recommended)
     ::WritePrivateProfileString(TEXT("API"), TEXT("route_chat_completions"), TEXT("chat/completions"), iniFilePath);
@@ -68,6 +68,7 @@ void writeDefaultConfig()
     ::WritePrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), TEXT("0"), iniFilePath);
     ::WritePrivateProfileString(TEXT("API"), TEXT("presence_penalty"), TEXT("0"), iniFilePath); // Add streaming option (0=disabled, 1=enabled)
     ::WritePrivateProfileString(TEXT("API"), TEXT("streaming"), TEXT("1"), iniFilePath);
+    ::WritePrivateProfileString(TEXT("API"), TEXT("keep_alive"), TEXT("5m"), iniFilePath);
 
     // Show reasoning (thinking) sections (0=hidden, 1=shown)
     ::WritePrivateProfileString(TEXT("API"), TEXT("show_reasoning"), TEXT("0"), iniFilePath);
@@ -204,6 +205,9 @@ namespace ConfigManagerImpl
         ::GetPrivateProfileString(TEXT("API"), TEXT("top_p"), configAPIValue_topP.c_str(), buffer, 1024, iniFilePath);
         configAPIValue_topP = buffer;
 
+        ::GetPrivateProfileString(TEXT("API"), TEXT("keep_alive"), configAPIValue_keepAlive.c_str(), buffer, 1024, iniFilePath);
+        configAPIValue_keepAlive = buffer;
+ 
         ::GetPrivateProfileString(TEXT("API"), TEXT("frequency_penalty"), configAPIValue_frequencyPenalty.c_str(), buffer, 1024, iniFilePath);
         configAPIValue_frequencyPenalty = buffer;
 

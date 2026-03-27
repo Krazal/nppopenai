@@ -98,6 +98,7 @@ std::string APIUtils::prepareApiRequest(
     float topP,
     float frequencyPenalty,
     float presencePenalty,
+    const std::wstring &keepAlive,
     bool streaming)
 {
     // Get the appropriate request formatter based on the configured response type
@@ -112,7 +113,8 @@ std::string APIUtils::prepareApiRequest(
         maxTokens,
         topP,
         frequencyPenalty,
-        presencePenalty);
+        presencePenalty,
+        keepAlive);
 
     // Add streaming parameter if needed
     if (streaming)

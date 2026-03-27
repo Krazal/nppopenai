@@ -70,6 +70,7 @@ std::wstring configAPIValue_frequencyPenalty = TEXT("0");						// Repetition pen
 std::wstring configAPIValue_presencePenalty = TEXT("0");						// Topic repetition penalty
 std::wstring configAPIValue_streaming = TEXT("1");								// Add streaming flag ("1" to enable streaming responses from OpenAI)
 std::wstring configAPIValue_showReasoning = TEXT("0");							// Show reasoning sections ("1" to show, "0" to hide)
+std::wstring configAPIValue_keepAlive = TEXT("5m");								// Ollama: keep model in memory (seconds or suffix like 10m, 24h). "-1" to keep indefinitely, "0" to unload immediately. Default to 5 minutes to balance performance and resource usage.
 bool isKeepQuestion = true;														// Keep original question in response
 std::vector<std::wstring> chatHistory = {};										// Chat history for context
 bool isLoadConfigAlertShown = false;											// Show alert only once for loading config
