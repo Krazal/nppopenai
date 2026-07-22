@@ -26,11 +26,83 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <!-- use wildcards instead of explicit file lists -->
+  <!-- DEPRECATED: use wildcards instead of explicit file lists
   <ItemGroup>
     <ClInclude Include="..\src\**\*.h" />
     <ClCompile Include="..\src\**\*.cpp" />
     <ResourceCompile Include="..\src\**\*.rc" />
+  </ItemGroup>
+  -->
+  <!-- enumerated files instead of wildcards to avoid IDE warning about MSBuild wildcards -->
+  <ItemGroup>
+    <ClInclude Include="..\src\api\APIUtils.h" />
+    <ClInclude Include="..\src\ui\dialogs\ChatSettingsDlg.h" />
+    <ClInclude Include="..\src\ui\dialogs\chatSettingsResource.h" />
+    <ClInclude Include="..\src\config\ConfigManager.h" />
+    <ClInclude Include="..\src\utils\DebugUtils.h" />
+    <ClInclude Include="..\src\ui\dialogs\Docking.h" />
+    <ClInclude Include="..\src\ui\dialogs\DockingDlgInterface.h" />
+    <ClInclude Include="..\src\editor\EditorInterface.h" />
+    <ClInclude Include="..\src\utils\EncodingUtils.h" />
+    <ClInclude Include="..\src\core\external_globals.h" />
+    <ClInclude Include="..\src\ui\services\GlobalConfigService.h" />
+    <ClInclude Include="..\src\ui\services\GlobalMenuService.h" />
+    <ClInclude Include="..\src\ui\services\GlobalNotepadService.h" />
+    <ClInclude Include="..\src\ui\services\GlobalUIService.h" />
+    <ClInclude Include="..\src\api\HTTPClient.h" />
+    <ClInclude Include="..\src\ui\interfaces\IConfigurationService.h" />
+    <ClInclude Include="..\src\ui\interfaces\ILoadingDialog.h" />
+    <ClInclude Include="..\src\ui\interfaces\IMenuService.h" />
+    <ClInclude Include="..\src\ui\interfaces\INotepadService.h" />
+    <ClInclude Include="..\src\ui\interfaces\IUIService.h" />
+    <ClInclude Include="..\src\ui\dialogs\LoaderDlg.h" />
+    <ClInclude Include="..\src\ui\dialogs\loaderResource.h" />
+    <ClInclude Include="..\src\core\menuCmdID.h" />
+    <ClInclude Include="..\src\npp\Notepad_plus_msgs.h" />
+    <ClInclude Include="..\src\core\NppPluginDemo.h" />
+    <ClInclude Include="..\src\api\OpenAIClient.h" />
+    <ClInclude Include="..\src\core\PluginDefinition.h" />
+    <ClInclude Include="..\src\npp\PluginInterface.h" />
+    <ClInclude Include="..\src\config\PromptManager.h" />
+    <ClInclude Include="..\src\api\RequestFormatters.h" />
+    <ClInclude Include="..\src\core\resource.h" />
+    <ClInclude Include="..\src\ui\dialogs\resource.h" />
+    <ClInclude Include="..\src\api\ResponseParsers.h" />
+    <ClInclude Include="..\src\npp\Scintilla.h" />
+    <ClInclude Include="..\src\npp\Sci_Position.h" />
+    <ClInclude Include="..\src\ui\dialogs\StaticDialog.h" />
+    <ClInclude Include="..\src\api\StreamParser.h" />
+    <ClInclude Include="..\src\ui\UIHelpers.h" />
+    <ClInclude Include="..\src\ui\dialogs\Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\api\APIUtils.cpp" />
+    <ClCompile Include="..\src\ui\dialogs\ChatSettingsDlg.cpp" />
+    <ClCompile Include="..\src\config\ConfigManager.cpp" />
+    <ClCompile Include="..\src\utils\DebugUtils.cpp" />
+    <ClCompile Include="..\src\editor\EditorInterface.cpp" />
+    <ClCompile Include="..\src\utils\EncodingUtils.cpp" />
+    <ClCompile Include="..\src\ui\services\GlobalConfigService.cpp" />
+    <ClCompile Include="..\src\ui\services\GlobalMenuService.cpp" />
+    <ClCompile Include="..\src\ui\services\GlobalNotepadService.cpp" />
+    <ClCompile Include="..\src\ui\services\GlobalUIService.cpp" />
+    <ClCompile Include="..\src\api\HTTPClient.cpp" />
+    <ClCompile Include="..\src\ui\dialogs\LoaderDlg.cpp" />
+    <ClCompile Include="..\src\core\NppPluginDemo.cpp" />
+    <ClCompile Include="..\src\api\OpenAIClient.cpp" />
+    <ClCompile Include="..\src\core\PluginDefinition.cpp" />
+    <ClCompile Include="..\src\config\PromptManager.cpp" />
+    <ClCompile Include="..\src\api\RequestFormatters.cpp" />
+    <ClCompile Include="..\src\api\ResponseParsers.cpp" />
+    <ClCompile Include="..\src\ui\dialogs\StaticDialog.cpp" />
+    <ClCompile Include="..\src\api\StreamParser.cpp" />
+    <ClCompile Include="..\src\ui\UIHelpers.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\ui\dialogs\ChatSettingsDlg.rc" />
+    <ResourceCompile Include="..\src\ui\dialogs\LoaderDlg.rc" />
+    <ResourceCompile Include="..\src\core\NppPluginDemo.rc" />
+    <ResourceCompile Include="..\src\core\PluginDefinition.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9D04DBD5-E12E-44E0-A683-6F43F21D533B}</ProjectGuid>
