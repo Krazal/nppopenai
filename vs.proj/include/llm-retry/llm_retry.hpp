@@ -23,9 +23,10 @@ struct RetryConfig {
     double max_delay_ms       = 30000.0;
     double backoff_multiplier = 2.0;
     double jitter_factor      = 0.1;
-    // 408 request timeout and 529 overloaded (Anthropic's overloaded_error)
-    // are transient, so they are retried along with 429 and the 5xx codes.
-    std::vector<int> retry_on_http_codes = {408, 429, 500, 502, 503, 504, 529};
+    // Retry transient request/overload responses, including Cloudflare's 520/521/522/524,
+    // 408 request timeout and 529 overloaded (Anthropic's overloaded_error),
+    // so they are retried along with 429 and the 5xx codes.
+    std::vector<int> retry_on_http_codes = {408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 524, 529};
 };
 
 struct CircuitBreakerConfig {
